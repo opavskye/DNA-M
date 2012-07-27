@@ -2,6 +2,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <cuda.h>
+#include <curand.h>
+
+#include "sequencer.cu"
+//#include "printFunctions.cu"
+
 int readSequences (char * fileName, char ** sequences, int numSequences, int sequenceLength) {
 
   FILE *dataFile;
@@ -23,10 +29,6 @@ int readSequences (char * fileName, char ** sequences, int numSequences, int seq
   return 1;
 }
 
-void printSequences (char ** sequences, int numSequences) {
-  for (int i = 0; i < numSequences; i++)
-    printf("sequence %d = %s\n", i, sequences[i]);
-}
 
 int main (int argc, char *argv[]) {
   
@@ -35,6 +37,8 @@ int main (int argc, char *argv[]) {
 
   int numSequences = 125;
   int sequenceLength = 201;
+  
+  double matchAccuracy = .95;
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
@@ -58,7 +62,9 @@ int main (int argc, char *argv[]) {
   if (!readSequences (fileName, sequences, numSequences, sequenceLength))
     printf ("error reading data\n");
 
-  printSequences (sequences, numSequences);
+  // printSequences (sequences, numSequences);
+
+  sequencerWrapper (sequences, numSequences, sequenceLength, matchAccuracy);
 
   // free all allocated memory
   for (int i = 0; i < numSequences; i++)

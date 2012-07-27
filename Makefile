@@ -22,7 +22,7 @@ LIB_CUDA := -L$(CUDA_INSTALL_PATH)/lib -lcurand
 
 default: dataReader
 
-dataReader: dataReader.cu
+dataReader: dataReader.cu sequencer.cu
 	$(NVCC) -o dataReader dataReader.cu $(NVCCFLAGS)
 
 clean:
