@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <cuda.h>
 #include <curand.h>
 
 #include "sequencer.cu"
-//#include "printFunctions.cu"
 
-int readSequences (char * fileName, char ** sequences, int numSequences, int sequenceLength) {
+int readSequences (char * fileName, char ** sequences, int numSequences) {
 
   FILE *dataFile;
   if ((dataFile = fopen (fileName, "r")) == NULL) {
@@ -36,14 +36,15 @@ int main (int argc, char *argv[]) {
   strcpy (fileName, "../data/");
 
   int numSequences = 125;
-  int sequenceLength = 201;
+  int sequenceLength = 200;
   
+  int matchLength = 15;
   double matchAccuracy = .95;
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
   for (int i = 0; i < numSequences; i++)
-    *(sequences + i) = (char *) malloc (sequenceLength * sizeof (char));
+    *(sequences + i) = (char *) malloc ((sequenceLength + 1) * sizeof (char));
 
 
   if (argc >= 1) 
@@ -59,12 +60,12 @@ int main (int argc, char *argv[]) {
     }
 
   // read in the data
-  if (!readSequences (fileName, sequences, numSequences, sequenceLength))
+  if (!readSequences (fileName, sequences, numSequences))
     printf ("error reading data\n");
 
   // printSequences (sequences, numSequences);
 
-  sequencerWrapper (sequences, numSequences, sequenceLength, matchAccuracy);
+  sequencer (sequences, numSequences, sequenceLength, matchLength, matchAccuracy);
 
   // free all allocated memory
   for (int i = 0; i < numSequences; i++)
