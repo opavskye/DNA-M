@@ -1,5 +1,5 @@
 #include "printFunctions.cu"
-#include <stdio.h>
+#include <time.h>
 
 #define MAX_THREADS_PER_BLOCK 1024
 
@@ -23,14 +23,19 @@ __global__ void createBuckets (char * sequence, char * buckets, int sequenceLeng
 }
 
 void sequencer (char ** sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
-  // TODO: make this a random sequence or something like that
-  int bucketSequence = 0;
 
   // put sequences into device memory
   char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
 
   // printSequences (sequences, numSequences, sequenceLength);
   // printDeviceSequences (d_sequences, numSequences, sequenceLength);
+
+
+  // choose a random sequence to create buckets from
+  srand (time (NULL));
+  int bucketSequence = rand() % numSequences;
+  
+  printf("bucketSequence = %d\n", bucketSequence);
 
   // create the buckets
   char * d_buckets;
@@ -45,7 +50,7 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
 
   createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, sequenceLength, matchLength);
 
-  // printDeviceSequences (d_buckets, numBuckets, matchLength);
+  printDeviceSequences (d_buckets, numBuckets, matchLength);
 
   // run kernel in loop from length of sequence down to ~10 or so to see
   //  which bucket sizes give good results
