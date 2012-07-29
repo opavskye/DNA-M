@@ -1,7 +1,7 @@
 #include "printFunctions.cu"
 #include <time.h>
 
-#define MAX_THREADS_PER_BLOCK 1024
+#define THREADS_PER_BLOCK 1024
 
 char * copySequenceToDevice (char ** sequences, int numSequences, int sequenceLength) {
   char * d_sequences;
@@ -17,9 +17,28 @@ __global__ void createBuckets (char * sequence, char * buckets, int sequenceLeng
   
   int index = threadIdx.x + blockIdx.x * threadIdx.x;
 
-  // TODO: make this more coalesced later
+  // TODO: make this more coalesced
   for (int i = 0; i < matchLength; i++)
     *(buckets + matchLength * index + i) = *(sequence + index + i);
+}
+
+// TODO: put buckets into shared memory
+__global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy) {
+  
+  int numMatches = 0;
+
+  for (int i = 0; i < numBuckets; i++) {
+    for (int j = 0; j < matchLength; j++) 
+      if (*(sequences + blockIdx.x * sequenceLength + threadIdx.x + j) == *(buckets + i * matchLength + j))
+        numMatches++;
+    
+    if (numMatches / (double) matchLength >= matchAccuracy)
+      atomicInc (bucketCounts + i, UINT_MAX);
+
+    numMatches = 0;
+  }    
+
+  atomicInc (bucketCounts + numBuckets, UINT_MAX);
 }
 
 void sequencer (char ** sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
@@ -30,19 +49,18 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
   // printSequences (sequences, numSequences, sequenceLength);
   // printDeviceSequences (d_sequences, numSequences, sequenceLength);
 
-
   // choose a random sequence to create buckets from
   srand (time (NULL));
   int bucketSequence = rand() % numSequences;
   
-  printf("bucketSequence = %d\n", bucketSequence);
+  // printf ("bucketSequence = %d\n", bucketSequence);
 
   // create the buckets
   char * d_buckets;
   int numBuckets = sequenceLength - matchLength + 1;
   cudaMalloc (&d_buckets, sizeof (char) * numBuckets * matchLength); 
 
-  int numThreads = MAX_THREADS_PER_BLOCK;
+  int numThreads = THREADS_PER_BLOCK;
   int numBlocks = ceil (numBuckets / (float) numThreads);
 
   if (numThreads > numBuckets)
@@ -50,7 +68,25 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
 
   createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, sequenceLength, matchLength);
 
-  printDeviceSequences (d_buckets, numBuckets, matchLength);
+  // make counters for each bucket, with the last one counting how many didn't fit
+  //  into any buckets
+  uint * d_bucketCounts;
+  cudaMalloc (&d_bucketCounts, sizeof (uint) * (numBuckets + 1));
+  cudaMemset (d_bucketCounts, 0, sizeof (uint) * (numBuckets + 1));
+
+  // count how many sequences go into each bucket
+  numThreads = numBuckets;
+  numBlocks = numSequences;
+  assignBuckets<<<numBlocks, numThreads>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy);
+
+  uint * bucketCounts = (uint *) malloc (sizeof (uint) * (numBuckets + 1));
+  cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * (numBuckets + 1), cudaMemcpyDeviceToHost);
+
+  for (int i = 0; i < numBuckets + 1; i++)
+    printf ("bucketCount[%d] = %u\n", i, *(bucketCounts + i));
+  
+
+  // printDeviceSequences (d_buckets, numBuckets, matchLength);
 
   // run kernel in loop from length of sequence down to ~10 or so to see
   //  which bucket sizes give good results
@@ -58,6 +94,8 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
   //  will need an array to store data of which sequences have matching pattern
   
 
+  free (bucketCounts);
+  cudaFree (d_bucketCounts);
   cudaFree (d_buckets);
   cudaFree (d_sequences);
 

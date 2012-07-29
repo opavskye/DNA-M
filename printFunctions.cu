@@ -10,8 +10,8 @@ void printDeviceSequences (char * d_sequences, int numSequences, int sequenceLen
   for (int i = 0; i < numSequences; i++) {
     printf ("d_sequences[%d] = ", i);
     for (int j = 0; j < sequenceLength; j++)
-      printf("%c", *(temp + i * sequenceLength + j));  
-    printf("\n");
+      printf ("%c", *(temp + i * sequenceLength + j));  
+    printf ("\n");
   }
 
   free (temp);
@@ -21,8 +21,8 @@ void printSequences (char ** sequences, int numSequences, int sequenceLength) {
   for (int i = 0; i < numSequences; i++) {
     printf ("sequences[%d] = ", i);
     for (int j = 0; j < sequenceLength; j++)
-      printf("%c", sequences[i][j]);
-    printf("\n");
+      printf ("%c", sequences[i][j]);
+    printf ("\n");
   }
 }
 
