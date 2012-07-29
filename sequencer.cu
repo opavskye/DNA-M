@@ -8,7 +8,7 @@ char * copySequenceToDevice (char ** sequences, int numSequences, int sequenceLe
   cudaMalloc (&d_sequences, sizeof (char) * sequenceLength * numSequences);
 
   for (int i = 0; i < numSequences; i++)
-    cudaMemcpy (d_sequences + i * sequenceLength, *(sequences + i), sizeof (char) * (sequenceLength - 1), cudaMemcpyHostToDevice); 
+    cudaMemcpy (d_sequences + i * sequenceLength, *(sequences + i), sizeof (char) * sequenceLength, cudaMemcpyHostToDevice); 
 
   return d_sequences;
 }
@@ -25,6 +25,14 @@ __global__ void createBuckets (char * sequence, char * buckets, int sequenceLeng
 // TODO: put buckets into shared memory
 __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy) {
   
+  /*
+  // read buckets into shared memory for faster access
+  extern __shared__ char sharedBuckets[];
+  for (int i = threadIdx.x; i < numBuckets * matchLength; i += blockDim.x)
+    if (i < numBuckets)
+      sharedBuckets[i] = buckets[i];
+  */
+
   int numMatches = 0;
 
   for (int i = 0; i < numBuckets; i++) {

@@ -38,8 +38,8 @@ int main (int argc, char *argv[]) {
   int numSequences = 125;
   int sequenceLength = 200;
   
-  int matchLength = 5;
-  double matchAccuracy = .8;
+  int matchLength = 1;
+  double matchAccuracy = 1;
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
