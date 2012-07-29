@@ -38,7 +38,7 @@ int main (int argc, char *argv[]) {
   int numSequences = 125;
   int sequenceLength = 200;
   
-  int matchLength = 1;
+  int matchLength = 5;
   double matchAccuracy = 1;
 
   // allocate memory for sequences

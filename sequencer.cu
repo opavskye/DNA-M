@@ -17,27 +17,26 @@ __global__ void createBuckets (char * sequence, char * buckets, int sequenceLeng
   
   int index = threadIdx.x + blockIdx.x * threadIdx.x;
 
-  // TODO: make this more coalesced
   for (int i = 0; i < matchLength; i++)
     *(buckets + matchLength * index + i) = *(sequence + index + i);
 }
 
-// TODO: put buckets into shared memory
 __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy) {
   
-  /*
+  
   // read buckets into shared memory for faster access
   extern __shared__ char sharedBuckets[];
   for (int i = threadIdx.x; i < numBuckets * matchLength; i += blockDim.x)
     if (i < numBuckets)
-      sharedBuckets[i] = buckets[i];
-  */
+      for (int j = 0; j < matchLength; j++)
+        sharedBuckets[i * matchLength + j] = buckets[i * matchLength + j];
+  
 
   int numMatches = 0;
 
   for (int i = 0; i < numBuckets; i++) {
     for (int j = 0; j < matchLength; j++) 
-      if (*(sequences + blockIdx.x * sequenceLength + threadIdx.x + j) == *(buckets + i * matchLength + j))
+      if (*(sequences + blockIdx.x * sequenceLength + threadIdx.x + j) == *(sharedBuckets + i * matchLength + j))
         numMatches++;
     
     if (numMatches / (double) matchLength >= matchAccuracy)
@@ -85,7 +84,7 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
   // count how many sequences go into each bucket
   numThreads = numBuckets;
   numBlocks = numSequences;
-  assignBuckets<<<numBlocks, numThreads>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy);
+  assignBuckets<<<numBlocks, numThreads, (sizeof (char) * numBuckets * matchLength)>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy);
 
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * (numBuckets + 1));
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * (numBuckets + 1), cudaMemcpyDeviceToHost);
