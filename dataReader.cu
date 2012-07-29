@@ -35,29 +35,38 @@ int main (int argc, char *argv[]) {
   char fileName[100];
   strcpy (fileName, "../data/");
 
+  char fileEnd[100] = "sample.csv";
   int numSequences = 125;
   int sequenceLength = 200;
-  
   int matchLength = 5;
   double matchAccuracy = 1;
+
+  if (argc < 2) {
+    printf ("Please enter the name of the data file: ");
+    scanf ("%s", fileEnd);
+
+    printf ("Please enter the number of sequences: ");
+    scanf ("%d", &numSequences);
+
+    printf ("Please enter the length of the sequences: ");
+    scanf ("%d", &sequenceLength);
+
+    printf ("Please enter the length of the matching substrings: ");
+    scanf ("%d", &matchLength);
+
+    printf ("Please enter the minimum accuracy of the matches: ");
+    scanf ("%lf", &matchAccuracy);
+  }
+
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
   for (int i = 0; i < numSequences; i++)
     *(sequences + i) = (char *) malloc ((sequenceLength + 1) * sizeof (char));
 
-
-  if (argc >= 1) 
-    { 
-      // append argv[1] to the end of path to data folder
-      int i = 0; 
-      while ((fileName[(i++) + 8] = argv[1][i]) != '\0');
-    } 
-  else
-    {
-      printf ("Please run again with a filename input from the data folder.\n");
-      return 1;
-    }
+  // append fileEnd to the end of path to data folder
+  int i = 0; 
+  while ((fileName[(i++) + 8] = fileEnd[i]) != '\0');
 
   // read in the data
   if (!readSequences (fileName, sequences, numSequences))
