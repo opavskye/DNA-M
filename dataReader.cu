@@ -29,12 +29,12 @@ int readSequences (char * fileName, char ** sequences, int numSequences) {
   return 1;
 }
 
-uint maximum (uint * list, int listLength) {
-  uint max = list[0];
+int maximum (uint * list, int listLength) {
+  int max = 0;
 
   for (int i = 1; i < listLength; i++)
-    if (list[i] > max)
-      max = list[i];
+    if (list[i] > list[max])
+      max = i;
 
   return max;
 }
@@ -87,11 +87,13 @@ int main (int argc, char *argv[]) {
   int maxLength = 20;
   uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
   uint maximums[maxLength - minLength + 1];
+  int maxIndices[maxLength - minLength + 1];
 
   for (int i = minLength; i <= maxLength; i++) {
     results[i - minLength] = sequencer (sequences, numSequences, sequenceLength, i, matchAccuracy);
-    maximums[i - minLength] = maximum (results[i - minLength], sequenceLength - i + 1);
-    printf("For matchLength = %d, there were maximum %u matching sequences.\n", i, maximums[i - minLength]);
+    maxIndices[i - minLength] = maximum (results[i - minLength], sequenceLength - i + 1);
+    maximums[i - minLength] = results[i - minLength][maxIndices[i - minLength]];
+    printf ("For matchLength = %d, there were maximum %u matching sequences at bucket %d.\n", i, maximums[i - minLength], maxIndices[i - minLength]);
   }
   
 
