@@ -31,7 +31,6 @@ __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCo
       for (int j = 0; j < matchLength; j++)
         sharedBuckets[i * matchLength + j] = buckets[i * matchLength + j];
   
-
   int numMatches = 0;
 
   for (int i = 0; i < numBuckets; i++) {
@@ -93,7 +92,7 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
     printf ("bucketCount[%d] = %u\n", i, *(bucketCounts + i));
   
 
-  // printDeviceSequences (d_buckets, numBuckets, matchLength);
+   printDeviceSequences (d_buckets, numBuckets, matchLength);
 
   // run kernel in loop from length of sequence down to ~10 or so to see
   //  which bucket sizes give good results
@@ -105,5 +104,51 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
   cudaFree (d_bucketCounts);
   cudaFree (d_buckets);
   cudaFree (d_sequences);
+}
 
+__global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
+
+  // read query into shared memory for faster access
+  extern __shared__ char sharedQuery[];
+  if (threadIdx.x < queryLength)
+    *(sharedQuery + threadIdx.x) = query[threadIdx.x];
+
+  int numMatches = 0;
+  int startSpot = sequenceLength * blockIdx.x + threadIdx.x;
+
+  for (int i = 0; i < queryLength; i++) {
+    if (*(sequences + startSpot + i) == *(query + i))
+      numMatches++;
+  }  
+
+  if (numMatches / (double) queryLength >= matchAccuracy)
+    atomicInc (count, UINT_MAX);
+}
+
+
+uint counter (char ** sequences, int numSequences, int sequenceLength, char * query, int queryLength, double matchAccuracy) {
+ 
+  // put sequences into device memory
+  char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
+
+  // put query into device memory
+  char * d_query;
+  cudaMalloc (&d_query, queryLength * sizeof (char));
+  cudaMemcpy (d_query, query, queryLength * sizeof (char), cudaMemcpyHostToDevice);
+
+  // counts of how many times the query was found
+  uint count = 0;
+  uint * d_count;
+  cudaMalloc (&d_count, sizeof (uint));
+  cudaMemcpy (d_count, &count, sizeof (uint), cudaMemcpyHostToDevice);
+
+  counterKernel<<<numSequences, sequenceLength - queryLength + 1, queryLength * sizeof (char)>>> (d_sequences, sequenceLength, d_query, queryLength, d_count, matchAccuracy);
+
+  cudaMemcpy (&count, d_count, sizeof (uint), cudaMemcpyDeviceToHost);
+
+  cudaFree (d_count);
+  cudaFree (d_query);
+  cudaFree (d_sequences);
+
+  return count;
 }

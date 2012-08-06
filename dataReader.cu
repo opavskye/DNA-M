@@ -38,8 +38,8 @@ int main (int argc, char *argv[]) {
   char fileEnd[100] = "sample.csv";
   int numSequences = 125;
   int sequenceLength = 200;
-  int matchLength = 5;
-  double matchAccuracy = 1;
+  int matchLength = 10;
+  double matchAccuracy = .8;
 
   if (argc < 2) {
     printf ("Please enter the name of the data file: ");
@@ -74,7 +74,14 @@ int main (int argc, char *argv[]) {
 
   // printSequences (sequences, numSequences);
 
-  sequencer (sequences, numSequences, sequenceLength, matchLength, matchAccuracy);
+  // sequencer (sequences, numSequences, sequenceLength, matchLength, matchAccuracy);
+  char * s1 = "AGAGTTGTGG";
+  char * s2 = "CAGGCAGCTC";
+  char * s3 = "CTAACTGGGG";
+
+  printf ("counter 1 = %u\n", counter (sequences, numSequences, sequenceLength, s1, 10, .8));
+  printf ("counter 2 = %u\n", counter (sequences, numSequences, sequenceLength, s2, 10, .8));
+  printf ("counter 3 = %u\n", counter (sequences, numSequences, sequenceLength, s3, 10, .8));
 
   // free all allocated memory
   for (int i = 0; i < numSequences; i++)
