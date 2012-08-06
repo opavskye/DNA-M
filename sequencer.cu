@@ -47,7 +47,7 @@ __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCo
   atomicInc (bucketCounts + numBuckets, UINT_MAX);
 }
 
-void sequencer (char ** sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
+uint * sequencer (char ** sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
 
   // put sequences into device memory
   char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
@@ -88,22 +88,22 @@ void sequencer (char ** sequences, int numSequences, int sequenceLength, int mat
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * (numBuckets + 1));
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * (numBuckets + 1), cudaMemcpyDeviceToHost);
 
-  for (int i = 0; i < numBuckets + 1; i++)
-    printf ("bucketCount[%d] = %u\n", i, *(bucketCounts + i));
+  // for (int i = 0; i < numBuckets + 1; i++)
+  //  printf ("bucketCounts[%d] = %u\n", i, *(bucketCounts + i));
   
 
-   printDeviceSequences (d_buckets, numBuckets, matchLength);
+  // printDeviceSequences (d_buckets, numBuckets, matchLength);
 
   // run kernel in loop from length of sequence down to ~10 or so to see
   //  which bucket sizes give good results
   //  will need an array which holds what the matching pattern is
   //  will need an array to store data of which sequences have matching pattern
   
-
-  free (bucketCounts);
   cudaFree (d_bucketCounts);
   cudaFree (d_buckets);
   cudaFree (d_sequences);
+
+  return bucketCounts;
 }
 
 __global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {

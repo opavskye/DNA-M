@@ -29,6 +29,15 @@ int readSequences (char * fileName, char ** sequences, int numSequences) {
   return 1;
 }
 
+uint maximum (uint * list, int listLength) {
+  uint max = list[0];
+
+  for (int i = 1; i < listLength; i++)
+    if (list[i] > max)
+      max = list[i];
+
+  return max;
+}
 
 int main (int argc, char *argv[]) {
   
@@ -39,7 +48,7 @@ int main (int argc, char *argv[]) {
   int numSequences = 125;
   int sequenceLength = 200;
   int matchLength = 10;
-  double matchAccuracy = .8;
+  double matchAccuracy = .9;
 
   if (argc < 2) {
     printf ("Please enter the name of the data file: ");
@@ -74,19 +83,34 @@ int main (int argc, char *argv[]) {
 
   // printSequences (sequences, numSequences);
 
-  // sequencer (sequences, numSequences, sequenceLength, matchLength, matchAccuracy);
-  char * s1 = "AGAGTTGTGG";
-  char * s2 = "CAGGCAGCTC";
-  char * s3 = "CTAACTGGGG";
+  int minLength = 4;
+  int maxLength = 20;
+  uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
+  uint maximums[maxLength - minLength + 1];
 
-  printf ("counter 1 = %u\n", counter (sequences, numSequences, sequenceLength, s1, 10, .8));
-  printf ("counter 2 = %u\n", counter (sequences, numSequences, sequenceLength, s2, 10, .8));
-  printf ("counter 3 = %u\n", counter (sequences, numSequences, sequenceLength, s3, 10, .8));
+  for (int i = minLength; i <= maxLength; i++) {
+    results[i - minLength] = sequencer (sequences, numSequences, sequenceLength, i, matchAccuracy);
+    maximums[i - minLength] = maximum (results[i - minLength], sequenceLength - i + 1);
+    printf("For matchLength = %d, there were maximum %u matching sequences.\n", i, maximums[i - minLength]);
+  }
+  
+
+  //  char * s1 = "AGAGTTGTGG";
+  //  char * s2 = "CAGGCAGCTC";
+  //  char * s3 = "CTAACTGGGG";
+
+  // printf ("counter 1 = %u\n", counter (sequences, numSequences, sequenceLength, s1, 10, .8));
+  // printf ("counter 2 = %u\n", counter (sequences, numSequences, sequenceLength, s2, 10, .8));
+  // printf ("counter 3 = %u\n", counter (sequences, numSequences, sequenceLength, s3, 10, .8));
 
   // free all allocated memory
   for (int i = 0; i < numSequences; i++)
     free (sequences[i]);
   free (sequences);
+
+  for (int i = minLength; i <= maxLength; i++)
+    free (results[i - minLength]);
+  free (results);
 
   return 0;
 }
