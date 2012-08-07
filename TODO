@@ -4,15 +4,16 @@ List of stuff to be done:
 2) make createBuckets() use coalesced memory access
 3) COMPLETE make sequencer choose a random sequence for createBuckets()
 
+IMPORTANT:  sequencer kernel may not be able to handle large data sets
+            counter kernel should not be able to handle large data sets
+
 
 Strategy ideas:
 
 1) only keep counts of each bucket, then when we need to find where
     that sequence is, just create a separate program which searches
     for the string we're interested in and then says where all of
-    the instances of it are
-
-2) add buckets when a segment doesn't match any of the old ones?
+    the instances of it are2) add buckets when a segment doesn't match any of the old ones?
 
 3) do a bunch of tests so that it doesn't matter which sequence
     is randomly chosen
