@@ -50,7 +50,7 @@ int main (int argc, char *argv[]) {
   int matchLength = 10;
   double matchAccuracy = 1;
 
-  if (argc > 2) {
+  if (argc == 3) {
     fileEnd[6] = '2';
     fileEnd[7] = '.';
     fileEnd[8] = 'c';
@@ -59,6 +59,18 @@ int main (int argc, char *argv[]) {
     fileEnd[11] = '\0';
     numSequences = 3000;
     sequenceLength = 4000;
+  }
+
+  if (argc == 2) {
+    fileEnd[6] = '3';
+    fileEnd[7] = '.';
+    fileEnd[8] = 'c';
+    fileEnd[9] = 's';
+    fileEnd[10] = 'v';
+    fileEnd[11] = '\0';
+    numSequences = 2001;
+    sequenceLength = 2000;
+
   }
 
   if (argc < 2) {
