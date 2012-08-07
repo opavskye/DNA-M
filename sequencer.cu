@@ -1,8 +1,6 @@
 #include "printFunctions.cu"
 #include <time.h>
 
-#define THREADS_PER_BLOCK 1024
-
 char * copySequenceToDevice (char ** sequences, int numSequences, int sequenceLength) {
   char * d_sequences;
   cudaMalloc (&d_sequences, sizeof (char) * sequenceLength * numSequences);
@@ -13,52 +11,75 @@ char * copySequenceToDevice (char ** sequences, int numSequences, int sequenceLe
   return d_sequences;
 }
 
-__global__ void createBuckets (char * sequence, char * buckets, int sequenceLength, int matchLength) {
-  
-  int index = threadIdx.x + blockIdx.x * threadIdx.x;
-
-  for (int i = 0; i < matchLength; i++)
-    *(buckets + matchLength * index + i) = *(sequence + index + i);
+__global__ void createBuckets (char * sequence, char * buckets, int sequenceLength, int numBuckets, int matchLength, int blockBuckets) {
+  //  int bucketIndex = threadIdx.x * matchLength * (1 + blockIdx.x % blockBuckets);
+  // int bucketIndex = (threadIdx.x + blockIdx.x * threadIdx.x) * (1 + blockIdx.x % blockBuckets);
+  // int sequenceIndex = (threadIdx.x + blockIdx.x * threadIdx.x) * (1 + blockIdx.x % blockBuckets);
+  if (threadIdx.x == 0 && blockIdx.x == 0) 
+   printf("kernel2\n");
+  int index = threadIdx.x + (blockIdx.x % blockBuckets * blockDim.x);
+  // if (threadIdx.x == 1)
+  //   printf ("index = %d\n", index);
+  if (index < numBuckets)
+    for (int i = 0; i < matchLength; i++)
+      *(buckets + index * matchLength + i) = *(sequence + index + i);
 }
 
-__global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy) {
-  
-  
-  // read buckets into shared memory for faster access
-  extern __shared__ char sharedSequence[];
+__global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int blockBuckets) {
+
+  // printf ("now testing sequence %d, bucket %d\n", blockIdx.x, threadIdx.x);
+
+  // read sequence into shared memory for faster access
+  extern __shared__ char sharedSequence[];  
   for (int i = threadIdx.x; i < sequenceLength; i += blockDim.x) 
-    sharedSequence[i] = sequences[blockIdx.x * sequenceLength + i];
- 
+    sharedSequence[i] = sequences[blockIdx.x / blockBuckets * sequenceLength + i];
+
   syncthreads();
   
   int numMatches = 0;
+  int bucketIndex = threadIdx.x * matchLength * (1 + blockIdx.x % blockBuckets);
 
-  for (int i = 0; i < numBuckets; i++) {
-    for (int j = 0; j < matchLength; j++) 
-      if (*(buckets + threadIdx.x * matchLength + j) == *(sharedSequence + i + j)) 
-        numMatches++;
+  if (threadIdx.x == 0 && blockIdx.x == 0) 
+   printf("kernel\n");
 
-    if (numMatches / (double) matchLength >= matchAccuracy) {
-      atomicInc (bucketCounts + threadIdx.x, UINT_MAX);
-      return;
+   //  for (int i = 0; i < matchLength; i++)
+      //   printf("%c", *(buckets + bucketIndex + i));
+      // printf("%c", *(sharedSequence + i));
+
+  //   printf ("\n");
+  //  printf("blockBuckets = %d\n", blockBuckets);
+  //}
+
+  if (bucketIndex < numBuckets * matchLength) 
+    // to go through entire sequence, up to sequenceLength - matchLength + 1
+    for (int i = 0; i < numBuckets; i++) {
+      // check if this thread's bucket matches the current sequence matchLength segment
+      for (int j = 0; j < matchLength; j++)
+        if (*(buckets + bucketIndex + j) == *(sharedSequence + i + j)) 
+          numMatches++;
+
+      if (numMatches / (double) matchLength >= matchAccuracy) {
+        atomicInc (bucketCounts + bucketIndex / matchLength, UINT_MAX);
+        // break;
+      }
+      
+      numMatches = 0;    
     }
-    numMatches = 0;    
-  }
 
+  // for debugging
   atomicInc (bucketCounts + numBuckets, UINT_MAX);
 }
 
-uint * sequencer (char ** sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
+uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
+  // printf("running sequences\n");
 
-  // put sequences into device memory
-  char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
 
   // printSequences (sequences, numSequences, sequenceLength);
-  // printDeviceSequences (d_sequences, numSequences, sequenceLength);
+  // printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
 
   // choose a random sequence to create buckets from
   srand (time (NULL));
-  int bucketSequence =  rand() % numSequences;
+  int bucketSequence = 0;//rand() % numSequences;
   
   // printf ("bucketSequence = %d\n", bucketSequence);
 
@@ -66,25 +87,41 @@ uint * sequencer (char ** sequences, int numSequences, int sequenceLength, int m
   char * d_buckets;
   int numBuckets = sequenceLength - matchLength + 1;
   cudaMalloc (&d_buckets, sizeof (char) * numBuckets * matchLength); 
+cudaError_t err = cudaGetLastError();
+if (err != cudaSuccess) 
+    printf("Error: %s\n", cudaGetErrorString(err));
 
-  int numThreads = THREADS_PER_BLOCK;
-  int numBlocks = ceil (numBuckets / (float) numThreads);
 
+  int numThreads = 1024;
   if (numThreads > numBuckets)
     numThreads = numBuckets;
 
-  createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, sequenceLength, matchLength);
+  int blockBuckets = ceil (numBuckets / (float) numThreads);
+  int numBlocks = blockBuckets;
+
+  createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, numBuckets, sequenceLength, matchLength, blockBuckets);
+ err = cudaGetLastError();
+if (err != cudaSuccess) 
+    printf("Error: %s\n", cudaGetErrorString(err));
+
 
   // make counters for each bucket, with the last one counting how many didn't fit
   //  into any buckets
   uint * d_bucketCounts;
   cudaMalloc (&d_bucketCounts, sizeof (uint) * (numBuckets + 1));
   cudaMemset (d_bucketCounts, 0, sizeof (uint) * (numBuckets + 1));
+  cudaThreadSynchronize();
+  // printDeviceSequences (d_buckets, numBuckets, matchLength);
 
-  // count how many sequences go into each bucket
-  numThreads = numBuckets;
-  numBlocks = numSequences;
-  assignBuckets<<<numBlocks, numThreads, sizeof (char) * sequenceLength>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy);
+  // printf("numBlocks = %d, numThreads = %d, sharedmemsize = %d\n", numBlocks * numSequences, numThreads, sizeof (char) * sequenceLength);
+
+  // assign the buckets
+  assignBuckets<<<numBlocks * numSequences, numThreads, sizeof (char) * sequenceLength>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, blockBuckets);
+ err = cudaGetLastError();
+if (err != cudaSuccess) 
+    printf("Error: %s\n", cudaGetErrorString(err));
+
+  cudaThreadSynchronize();
 
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * (numBuckets + 1));
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * (numBuckets + 1), cudaMemcpyDeviceToHost);
@@ -102,7 +139,6 @@ uint * sequencer (char ** sequences, int numSequences, int sequenceLength, int m
   
   cudaFree (d_bucketCounts);
   cudaFree (d_buckets);
-  cudaFree (d_sequences);
 
   return bucketCounts;
 }

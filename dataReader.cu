@@ -48,7 +48,18 @@ int main (int argc, char *argv[]) {
   int numSequences = 125;
   int sequenceLength = 200;
   int matchLength = 10;
-  double matchAccuracy = .9;
+  double matchAccuracy = 1;
+
+  if (argc > 2) {
+    fileEnd[6] = '2';
+    fileEnd[7] = '.';
+    fileEnd[8] = 'c';
+    fileEnd[9] = 's';
+    fileEnd[10] = 'v';
+    fileEnd[11] = '\0';
+    numSequences = 3000;
+    sequenceLength = 4000;
+  }
 
   if (argc < 2) {
     printf ("Please enter the name of the data file: ");
@@ -78,19 +89,24 @@ int main (int argc, char *argv[]) {
   while ((fileName[(i++) + 8] = fileEnd[i]) != '\0');
 
   // read in the data
-  if (!readSequences (fileName, sequences, numSequences))
+  if (!readSequences (fileName, sequences, numSequences)) {
     printf ("error reading data\n");
+    return 1;
+  }
 
-  // printSequences (sequences, numSequences);
+  // printFirstLast (sequences, numSequences, sequenceLength);
 
-  int minLength = 4;
+  int minLength = 1;
   int maxLength = 20;
   uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
   uint maximums[maxLength - minLength + 1];
   int maxIndices[maxLength - minLength + 1];
 
+  // put sequences into device memory
+  char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
+
   for (int i = minLength; i <= maxLength; i++) {
-    results[i - minLength] = sequencer (sequences, numSequences, sequenceLength, i, matchAccuracy);
+    results[i - minLength] = sequencer (d_sequences, numSequences, sequenceLength, i, matchAccuracy);
     maxIndices[i - minLength] = maximum (results[i - minLength], sequenceLength - i + 1);
     maximums[i - minLength] = results[i - minLength][maxIndices[i - minLength]];
     printf ("For matchLength = %d, there were maximum %u matching sequences at bucket %d.\n", i, maximums[i - minLength], maxIndices[i - minLength]);
@@ -106,6 +122,8 @@ int main (int argc, char *argv[]) {
   // printf ("counter 3 = %u\n", counter (sequences, numSequences, sequenceLength, s3, 10, .8));
 
   // free all allocated memory
+  cudaFree (d_sequences);
+
   for (int i = 0; i < numSequences; i++)
     free (sequences[i]);
   free (sequences);
