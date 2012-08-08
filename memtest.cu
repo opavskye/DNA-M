@@ -33,7 +33,7 @@ int main() {
   int minLength = 4;
   int maxLength = 20;
   
-  char * fileName = "../data/sample2.csv";
+  char * fileName = "../data/sample3.csv";
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
@@ -73,6 +73,7 @@ int main() {
 
   int blockBuckets = ceil (numBuckets / (float) numThreads);
   int numBlocks = blockBuckets;
+
 
   createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, numBuckets, sequenceLength, matchLength, blockBuckets);
   cudaThreadSynchronize();
