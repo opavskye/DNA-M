@@ -33,7 +33,7 @@ int main() {
   int minLength = 4;
   int maxLength = 20;
   
-  char * fileName = "../data/sample.csv";
+  char * fileName = "../data/sample2.csv";
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
