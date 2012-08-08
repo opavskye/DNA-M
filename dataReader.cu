@@ -108,7 +108,7 @@ int main (int argc, char *argv[]) {
 
   // printFirstLast (sequences, numSequences, sequenceLength);
 
-  int minLength = 20;
+  int minLength = 4;
   int maxLength = 20;
   uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
   uint maximums[maxLength - minLength + 1];
