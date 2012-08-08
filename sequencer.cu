@@ -38,37 +38,45 @@ __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCo
   
   int numMatches = 0;
   int bucketIndex = threadIdx.x * matchLength * (1 + blockIdx.x % blockBuckets);
+  //  if (threadIdx.x == 0 && blockIdx.x == 0) 
+  //  printf("kernel\n");
 
-  if (threadIdx.x == 0 && blockIdx.x == 0) 
-   printf("kernel\n");
-
-   //  for (int i = 0; i < matchLength; i++)
-      //   printf("%c", *(buckets + bucketIndex + i));
-      // printf("%c", *(sharedSequence + i));
+  //  for (int i = 0; i < matchLength; i++)
+  //   printf("%c", *(buckets + bucketIndex + i));
+  // printf("%c", *(sharedSequence + i));
 
   //   printf ("\n");
   //  printf("blockBuckets = %d\n", blockBuckets);
   //}
 
-  if (bucketIndex < numBuckets * matchLength) 
-    // to go through entire sequence, up to sequenceLength - matchLength + 1
-    for (int i = 0; i < numBuckets; i++) {
-      // check if this thread's bucket matches the current sequence matchLength segment
-      for (int j = 0; j < matchLength; j++)
-        if (*(buckets + bucketIndex + j) == *(sharedSequence + i + j)) 
-          numMatches++;
-
-      if (numMatches / (double) matchLength >= matchAccuracy) {
-        atomicInc (bucketCounts + bucketIndex / matchLength, UINT_MAX);
-        // break;
+  //if (bucketIndex < (numBuckets - 1) * matchLength)  
+  // to go through entire sequence, up to sequenceLength - matchLength + 1
+  for (int i = 0; i < numBuckets; i++) {
+    // check if this thread's bucket matches the current sequence matchLength segment
+    if ((bucketIndex < numBuckets * (matchLength - 1)) & (i < sequenceLength - matchLength)) {
+      for (int j = 0; j < matchLength; j++) {
+        if (threadIdx.x == 1023)
+          printf("thread = %d\tblock=%d\tbucketIndex = %d,\tsequenceIndex = %d\n", threadIdx.x, blockIdx.x, bucketIndex +j, i + j);
+        if (*(buckets + bucketIndex + j) == *(sharedSequence + i + j))
+            numMatches++;       
       }
-      
+      // if (numMatches >= 20);
+      // if (numMatches / (float) matchLength >= matchAccuracy) ;
+      // printf ("%d\n", bucketIndex / (float) matchLength);
+      //  printf("x\n");
+      //   atomicInc (bucketCounts + (bucketIndex / matchLength), UINT_MAX);
+      // break;
+      //  }
+      //   if (threadIdx.x % 2)
+      //    printf("diverge\n");
       numMatches = 0;    
     }
-
+  }
+  
   // for debugging
-  atomicInc (bucketCounts + numBuckets, UINT_MAX);
+  // atomicInc (bucketCounts + numBuckets, UINT_MAX);
 }
+
 
 uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
   // printf("running sequences\n");
@@ -87,9 +95,6 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   char * d_buckets;
   int numBuckets = sequenceLength - matchLength + 1;
   cudaMalloc (&d_buckets, sizeof (char) * numBuckets * matchLength); 
-cudaError_t err = cudaGetLastError();
-if (err != cudaSuccess) 
-    printf("Error: %s\n", cudaGetErrorString(err));
 
 
   int numThreads = 1024;
@@ -100,10 +105,6 @@ if (err != cudaSuccess)
   int numBlocks = blockBuckets;
 
   createBuckets<<<numBlocks, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, numBuckets, sequenceLength, matchLength, blockBuckets);
- err = cudaGetLastError();
-if (err != cudaSuccess) 
-    printf("Error: %s\n", cudaGetErrorString(err));
-
 
   // make counters for each bucket, with the last one counting how many didn't fit
   //  into any buckets
@@ -113,13 +114,13 @@ if (err != cudaSuccess)
   cudaThreadSynchronize();
   // printDeviceSequences (d_buckets, numBuckets, matchLength);
 
-  // printf("numBlocks = %d, numThreads = %d, sharedmemsize = %d\n", numBlocks * numSequences, numThreads, sizeof (char) * sequenceLength);
+  printf("numBlocks = %d, numThreads = %d, sharedmemsize = %d\n", numBlocks * numSequences, numThreads, sizeof (char) * sequenceLength);
 
   // assign the buckets
   assignBuckets<<<numBlocks * numSequences, numThreads, sizeof (char) * sequenceLength>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, blockBuckets);
- err = cudaGetLastError();
-if (err != cudaSuccess) 
-    printf("Error: %s\n", cudaGetErrorString(err));
+  // err = cudaGetLastError();
+  //if (err != cudaSuccess) 
+  //  printf("Error: %s\n", cudaGetErrorString(err));
 
   cudaThreadSynchronize();
 
@@ -139,8 +140,9 @@ if (err != cudaSuccess)
   
   cudaFree (d_bucketCounts);
   cudaFree (d_buckets);
+  free (bucketCounts);
 
-  return bucketCounts;
+  return NULL;
 }
 
 __global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
