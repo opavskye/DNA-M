@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
   char fileEnd[100] = "sample.csv";
   int numSequences = 125;
   int sequenceLength = 200;
-  int matchLength = 10;
+  int matchLength = 20;
   double matchAccuracy = 1;
 
   if (argc == 3) {
@@ -108,7 +108,7 @@ int main (int argc, char *argv[]) {
 
   // printFirstLast (sequences, numSequences, sequenceLength);
 
-  int minLength = 1;
+  int minLength = 20;
   int maxLength = 20;
   uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
   uint maximums[maxLength - minLength + 1];
