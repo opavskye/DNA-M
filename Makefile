@@ -25,5 +25,8 @@ default: dataReader
 dataReader: dataReader.cu sequencer.cu
 	$(NVCC) -o dataReader dataReader.cu $(NVCCFLAGS)
 
+memtest: memtest.cu sequencer.cu
+	$(NVCC) -o memtest memtest.cu $(NVCCFLAGS)
+
 clean:
 	rm -f dataReader *~ *#
