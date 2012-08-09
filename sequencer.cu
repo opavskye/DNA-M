@@ -51,10 +51,10 @@ __global__ void assignBuckets (char * sequences, char * bucketSequence, uint * b
         if (*(sharedBucketSequence + bucketIndex  + j) == *(sharedSequence + i + j))
           numMatches++;
 
-      if (numMatches / (double) matchLength >= matchAccuracy) 
+      if (numMatches / (double) matchLength >= matchAccuracy) {
         atomicInc (bucketCounts + bucketIndex, UINT_MAX);
-      // return;
-      //  }
+        return;
+      }
       //  atomicAdd (bucketCounts + bucketIndex, (numMatches / (double) matchLength >= matchAccuracy)); 
       numMatches = 0;
     }  
@@ -94,22 +94,23 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   cudaMalloc (&d_bucketCounts, sizeof (uint) * numBuckets * bucketsPerThread);
   cudaMemset (d_bucketCounts, 0, sizeof (uint) * numBuckets * bucketsPerThread);
 
-  // printf ("numThreads = %d, numBlocks = %d, numShared = %d, numBuckets = %d, bucketsPerThread = %d\n", numThreads, numSequences, sequenceLength * 2, numBuckets, bucketsPerThread);
+  
+  printf ("numThreads = %d, numBlocks = %d, numShared = %d, numBuckets = %d, bucketsPerThread = %d\n", numThreads, numSequences, sequenceLength * 2, numBuckets, bucketsPerThread);
 
-  // printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength);
-  // printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
+  printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength);
+  printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
   
   // each block is a sequence
   // each thread assigns bucketsPerThread number of buckets
   for (int i = 0; i < bucketsPerThread; i++) {
-    assignBuckets<<<numSequences * ceil (sequenceLength / (float) numThreads), numThreads, sizeof (char) * sequenceLength * 2>>> (d_sequences, d_bucketSequence, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, bucketsPerThread, i);
+    assignBuckets<<<numSequences, numThreads, sizeof (char) * sequenceLength * 2>>> (d_sequences, d_bucketSequence, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, bucketsPerThread, i);
     cudaThreadSynchronize();
   }
 
   
-  // printf("\nnow printing after assignBuckets:\n\n");
-  // printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength); 
-  // printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
+  printf("\nnow printing after assignBuckets:\n\n");
+  printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength); 
+  printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
   
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * numBuckets);
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * numBuckets, cudaMemcpyDeviceToHost);

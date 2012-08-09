@@ -29,4 +29,4 @@ memtest: memtest.cu sequencer.cu
 	$(NVCC) -o memtest memtest.cu $(NVCCFLAGS)
 
 clean:
-	rm -f dataReader *~ *#
+	rm -f dataReader memtest *~ *#
