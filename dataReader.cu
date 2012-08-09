@@ -150,6 +150,8 @@ int main (int argc, char *argv[]) {
   // put sequences into device memory
   char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
 
+  printf ("numSequences = %d, sequenceLength = %d\n", numSequences, sequenceLength);
+
   for (int i = minLength; i <= maxLength; i++) {
     results[i - minLength] = sequencer (d_sequences, numSequences, sequenceLength, i, matchAccuracy);
     maxIndices[i - minLength] = maximum (results[i - minLength], sequenceLength - i + 1);
