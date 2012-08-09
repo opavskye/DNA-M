@@ -3,7 +3,7 @@
 
 #define THREADS_PER_BLOCK 1024
 
-char * copySequenceToDevice (char ** sequences, int numSequences, int sequenceLength) {
+char * copySequencesToDevice (char ** sequences, int numSequences, int sequenceLength) {
   char * d_sequences;
   cudaMalloc (&d_sequences, sizeof (char) * sequenceLength * numSequences);
 
@@ -22,21 +22,28 @@ __global__ void createBuckets (char * sequence, char * buckets, int sequenceLeng
       *(buckets + matchLength * index + i) = *(sequence + index + i);
 }
 
-__global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int bucketsPerThread) {
+__global__ void createBucketSequence (char * bucketSequence, char * d_sequences, int sequenceLength, int bucketSequenceIndex) {
+  for (int i = threadIdx.x; i < sequenceLength; i += blockDim.x)
+    *(bucketSequence + i) = *(d_sequences + bucketSequenceIndex * sequenceLength + i);
+}
+
+__global__ void assignBuckets (char * sequences, char * bucketSequence, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int bucketsPerThread) {
 	  
 	  
   // use shared memory for the sequence and buckets
   extern __shared__ char shared[];
   char * sharedSequence = &shared[0];
-  char * sharedBuckets = &shared[sequenceLength];
+  char * sharedBucketSequence = &shared[sequenceLength];
 
-  // fill sharedSequence
-  for (int i = threadIdx.x; i < sequenceLength; i += blockDim.x)
+  // fill sharedSequence and sharedBucketSequence
+  for (int i = threadIdx.x; i < sequenceLength; i += blockDim.x) {
     sharedSequence[i] = sequences[blockIdx.x * sequenceLength + i];
+    sharedBucketSequence[i] = *(bucketSequence + i);
+  }
   
   // fill sharedBuckets
-  for (int i = threadIdx.x; i < matchLength * numBuckets; i += blockDim.x)
-    sharedBuckets[i] = buckets[i];
+  // for (int i = threadIdx.x; i < matchLength * numBuckets; i += blockDim.x)
+  //  sharedBuckets[i] = buckets[i];
   
 
   // if (threadIdx.x == 0 && blockIdx.x == 1)
@@ -51,7 +58,7 @@ __global__ void assignBuckets (char * sequences, char * buckets, uint * bucketCo
     if ((bucketIndex = threadIdx.x + k * numBuckets / bucketsPerThread) < numBuckets) {
       for (int i = 0; i < numBuckets; i++) {
         for (int j = 0; j < matchLength; j++) {
-          if (*(sharedBuckets + bucketIndex * matchLength + j) == *(sharedSequence + i + j))
+          if (*(sharedBucketSequence + bucketIndex  + j) == *(sharedSequence + i + j))
             numMatches++;
 
           //printf("x\n");
@@ -82,17 +89,22 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   // printf ("bucketSequence = %d\n", bucketSequence);
 
   // create the buckets
-  char * d_buckets;
   int numBuckets = sequenceLength - matchLength + 1;
-  cudaMalloc (&d_buckets, sizeof (char) * numBuckets * matchLength);
-
+  char * d_bucketSequence;
+  cudaMalloc (&d_bucketSequence, sizeof (char) * sequenceLength);
   int numThreads = THREADS_PER_BLOCK;
+  if (numThreads > sequenceLength)
+    numThreads = sequenceLength;
+
+  createBucketSequence<<<ceil (sequenceLength / (float) numThreads), numThreads>>> (d_bucketSequence, d_sequences, sequenceLength, bucketSequence);
+
+  // printDeviceSequences (d_bucketSequence, 1, sequenceLength);
+
+  numThreads = THREADS_PER_BLOCK;
   int bucketsPerThread = ceil (numBuckets / (float) numThreads);
 
   if (numThreads > numBuckets)
     numThreads = numBuckets;
-
-  createBuckets<<<bucketsPerThread, numThreads>>> (d_sequences + bucketSequence * sequenceLength, d_buckets, numBuckets, sequenceLength, matchLength, bucketsPerThread);
 
   // make counters for each bucket, with the last one counting how many didn't fit
   // into any buckets
@@ -100,21 +112,21 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   cudaMalloc (&d_bucketCounts, sizeof (uint) * numBuckets);
   cudaMemset (d_bucketCounts, 0, sizeof (uint) * numBuckets);
 
-  /*
+  
   printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
-  printDeviceFirstLast (d_buckets, numBuckets, matchLength);
-  */
+  printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength);
+  
   // each block is a sequence
   // each thread assigns bucketsPerThread number of buckets
-  assignBuckets<<<numSequences, numThreads, sizeof (char) * (matchLength * numBuckets + sequenceLength)>>> (d_sequences, d_buckets, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, bucketsPerThread);
+  assignBuckets<<<numSequences, numThreads, sizeof (char) * sequenceLength * 2>>> (d_sequences, d_bucketSequence, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, bucketsPerThread);
 
   cudaThreadSynchronize();
 
-  /*
+  
   printf("\nnow printing after assignBuckets:\n\n");
   printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
-  printDeviceFirstLast (d_buckets, numBuckets, matchLength); 
-  */
+  printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength); 
+  
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * numBuckets);
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * numBuckets, cudaMemcpyDeviceToHost);
 
@@ -130,7 +142,7 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   // will need an array to store data of which sequences have matching pattern
 	  
   cudaFree (d_bucketCounts);
-  cudaFree (d_buckets);
+  cudaFree (d_bucketSequence);
 
   return bucketCounts;
 }
@@ -158,7 +170,7 @@ __global__ void counterKernel (char * sequences, int sequenceLength, char * quer
 uint counter (char ** sequences, int numSequences, int sequenceLength, char * query, int queryLength, double matchAccuracy) {
 	 
   // put sequences into device memory
-  char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
+  char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
 
   // put query into device memory
   char * d_query;

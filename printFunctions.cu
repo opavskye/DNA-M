@@ -17,6 +17,25 @@ void printDeviceSequences (char * d_sequences, int numSequences, int sequenceLen
   free (temp);
 }
 
+void printFirstLastBuckets (char * d_bucketSequence, int numBuckets, int matchLength, int sequenceLength) {
+  char * temp = (char *) malloc (sizeof (char) * sequenceLength);
+
+  cudaMemcpy (temp, d_bucketSequence, sizeof (char) * sequenceLength, cudaMemcpyDeviceToHost);
+  // cudaMemcpy (temp2, (d_bucketSequence + numBuckets * sizeof (char)), sizeof (char) * matchLength, cudaMemcpyDeviceToHost);
+
+  printf ("first bucket = ");
+  for (int i = 0; i < matchLength; i++)
+    printf("%c", *(temp + i));
+
+  printf("\nlast bucket = ");
+  for (int i = 0; i < matchLength; i++)
+    printf("%c", *(temp + numBuckets - 1 + i));
+  printf("\n");
+  //  printf("numbuckets = %d\n", numBuckets);
+  free (temp);
+  // free (temp2);
+}
+
 void printDeviceFirstLast (char * d_sequences, int numSequences, int sequenceLength) {
   char * temp = (char *) malloc (sizeof (char) * 2 * sequenceLength);
 

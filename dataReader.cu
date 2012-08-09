@@ -108,14 +108,14 @@ int main (int argc, char *argv[]) {
 
   // printFirstLast (sequences, numSequences, sequenceLength);
 
-  int minLength = 4;
-  int maxLength = 20;
+  int minLength = 1;
+  int maxLength = 1;
   uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
   uint maximums[maxLength - minLength + 1];
   int maxIndices[maxLength - minLength + 1];
 
   // put sequences into device memory
-  char * d_sequences = copySequenceToDevice (sequences, numSequences, sequenceLength);
+  char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
 
   for (int i = minLength; i <= maxLength; i++) {
     results[i - minLength] = sequencer (d_sequences, numSequences, sequenceLength, i, matchAccuracy);
