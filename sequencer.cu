@@ -27,41 +27,6 @@ __global__ void createBucketSequence (char * bucketSequence, char * d_sequences,
     *(bucketSequence + i) = *(d_sequences + bucketSequenceIndex * sequenceLength + i);
 }
 
-/*
-__global__ void assignBuckets (char * sequences, char * bucketSequence, uint * bucketCounts, int numSequences, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int bucketsPerThread, int bucketGroup) {
-
-  int numMatches = 0;
-  int bucketIndex = threadIdx.x + bucketGroup * numBuckets / (float) bucketsPerThread;
-	    
-  // use shared memory for the sequence and buckets
-  extern __shared__ char shared[];
-  char * sharedSequence = &shared[0];
-  char * sharedBucketSequence = &shared[sequenceLength];
-  
-  // fill sharedSequence and sharedBucketSequence
-  for (int i = threadIdx.x; i < sequenceLength; i += blockDim.x) {
-    sharedSequence[i] = sequences[blockIdx.x * sequenceLength + i];
-    sharedBucketSequence[i] = *(bucketSequence + i);
-  }
-  
-  syncthreads();
-
-  if (bucketIndex < numBuckets) 
-    for (int i = 0; i < numBuckets; i++) {
-      for (int j = 0; j < matchLength; j++)
-        if (*(sharedBucketSequence + bucketIndex  + j) == *(sharedSequence + i + j))
-          numMatches++;
-
-      if (numMatches / (double) matchLength >= matchAccuracy) {
-        atomicInc (bucketCounts + bucketIndex, UINT_MAX);
-        return;
-      }
-      //  atomicAdd (bucketCounts + bucketIndex, (numMatches / (double) matchLength >= matchAccuracy)); 
-      numMatches = 0;
-    }  
-}
-*/
-
 __global__ void assignBuckets (char * sequence, char * bucketSequence, uint * tempBucketCounts, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int numSequenceSections) {
  
   extern __shared__ char shared[];
@@ -142,9 +107,6 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength);
   printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
   */
-  // each block is a sequence
-  // each thread assigns bucketsPerThread number of buckets
-
   
   numThreads = THREADS_PER_BLOCK;
   if (sequenceLength < numThreads)
@@ -206,13 +168,24 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
 
 __global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
 
-  // read query into shared memory for faster access
-  extern __shared__ char sharedQuery[];
-  if (threadIdx.x < queryLength)
+  // read query and sequence segment into shared memory for faster access
+  extern __shared__ char shared[];
+  char * sharedQuery = &shared[0];
+  char * sharedSequence = &shared[queryLength];
+
+  // start of current sequence section
+  int sequenceIndex = blockIdx.x * sequenceLength + blockIdx.y * blockDim.x;
+
+  if (threadIdx.x + sequenceIndex < sequenceLength)
+    *(sharedSequence + threadIdx.x) = *(sequences + sequenceIndex + threadIdx.x);
+
+  if (threadIdx.x < queryLength) {
     *(sharedQuery + threadIdx.x) = query[threadIdx.x];
+    *(sharedSequence + blockDim.x + threadIdx.x) = *(sequences + sequenceIndex + blockDim.x + threadIdx.x);
+  }
 
   int numMatches = 0;
-  int startSpot = sequenceLength * blockIdx.x + threadIdx.x;
+  int startSpot = sequenceIndex + threadIdx.x;
 
   for (int i = 0; i < queryLength; i++) {
     if (*(sequences + startSpot + i) == *(query + i))
@@ -224,6 +197,7 @@ __global__ void counterKernel (char * sequences, int sequenceLength, char * quer
 }
 
 
+// grep -c query fileName
 uint counter (char ** sequences, int numSequences, int sequenceLength, char * query, int queryLength, double matchAccuracy) {
 	 
   // put sequences into device memory
@@ -240,7 +214,14 @@ uint counter (char ** sequences, int numSequences, int sequenceLength, char * qu
   cudaMalloc (&d_count, sizeof (uint));
   cudaMemcpy (d_count, &count, sizeof (uint), cudaMemcpyHostToDevice);
 
-  counterKernel<<<numSequences, sequenceLength - queryLength + 1, queryLength * sizeof (char)>>> (d_sequences, sequenceLength, d_query, queryLength, d_count, matchAccuracy);
+  int numThreads = sequenceLength - queryLength + 1;
+  if (numThreads > THREADS_PER_BLOCK)
+    numThreads = THREADS_PER_BLOCK;
+
+  int numSequenceSections = ceil ((sequenceLength - queryLength + 1) / (float) numThreads);
+
+  dim3 gridDim (numSequences, numSequenceSections);
+  counterKernel<<<gridDim, numThreads, (queryLength * 2 + numThreads) * sizeof (char)>>> (d_sequences, sequenceLength, d_query, queryLength, d_count, matchAccuracy);
 
   cudaMemcpy (&count, d_count, sizeof (uint), cudaMemcpyDeviceToHost);
 
