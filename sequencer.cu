@@ -62,18 +62,21 @@ __global__ void assignBuckets (char * sequences, char * bucketSequence, uint * b
 }
 */
 
-__global__ void assignBucket (char * sequence, char * bucketSequence, uint * bucketCounts, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int numSequenceSections) {
+__global__ void assignBuckets (char * sequence, char * bucketSequence, uint * tempBucketCounts, int sequenceLength, int numBuckets, int matchLength, double matchAccuracy, int numSequenceSections) {
  
   extern __shared__ char shared[];
   char * sharedSequence = &shared[0];
-  char * sharedBucketSequence = &shared[blockDim.x];
+  char * sharedBucketSequence = &shared[blockDim.x + matchLength];
 
-  int sequenceIndex = blockIdx.x / numBuckets * blockDim.x;
-  int bucketIndex = blockIdx.x / numSequenceSections;
+  // start of this current sequence section
+  int sequenceIndex = blockIdx.y * blockDim.x;
 
-  if (threadIdx.x + blockIdx.x / numBuckets < sequenceLength) {
+  if (threadIdx.x + sequenceIndex < sequenceLength) 
     *(sharedSequence + threadIdx.x) = *(sequence + sequenceIndex + threadIdx.x);
-    *(sharedBucketSequence + threadIdx.x) = *(bucketSequence + bucketIndex + threadIdx.x);
+  
+  if (threadIdx.x < matchLength) {
+    *(sharedSequence + blockDim.x + threadIdx.x) = *(sequence + sequenceIndex + blockDim.x + threadIdx.x);
+    *(sharedBucketSequence + threadIdx.x) = *(bucketSequence + blockIdx.x + threadIdx.x);
   }
 
   syncthreads();
@@ -86,8 +89,23 @@ __global__ void assignBucket (char * sequence, char * bucketSequence, uint * buc
       if (*(sharedSequence + index) == *(sharedBucketSequence + i))
         numMatches++;
 
-  if (numMatches / (double) matchLength >= matchAccuracy) 
-    atomicInc (bucketCounts + bucketIndex, UINT_MAX);
+  if ((numMatches / (double) matchLength >= matchAccuracy) && (sequenceIndex + threadIdx.x < numBuckets)) 
+    // blockIdx.x * numBuckets is which bucket in tempBucketCounts
+    // sequenceIndex + threadIdx.x is which part of the sequence was just checked
+    atomicInc (tempBucketCounts + blockIdx.x * numBuckets + sequenceIndex + threadIdx.x, UINT_MAX);
+}
+
+__global__ void transferBuckets (uint * buckets, uint * tempBuckets, int numBuckets) {
+
+  int bucketIndex = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (bucketIndex < numBuckets)
+    for (int i = 0; i < numBuckets; i++) {
+      if (*(tempBuckets + bucketIndex * numBuckets + i)) {
+        (*(buckets + bucketIndex))++;
+        return;
+      }
+    }
 }
 
 uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
@@ -117,13 +135,6 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   int bucketsPerThread = ceil (numBuckets / (float) numThreads);
   // if (numThreads > numBuckets)
   //  numThreads = numBuckets;
-
-  // make counters for each bucket, with the last one counting how many didn't fit
-  // into any buckets
-  uint * d_bucketCounts;
-  cudaMalloc (&d_bucketCounts, sizeof (uint) * numBuckets * bucketsPerThread);
-  cudaMemset (d_bucketCounts, 0, sizeof (uint) * numBuckets * bucketsPerThread);
-
   
   //printf ("numThreads = %d, numBlocks = %d, numShared = %d, numBuckets = %d, bucketsPerThread = %d\n", numThreads, numSequences, sequenceLength * 2, numBuckets, bucketsPerThread);
   
@@ -133,12 +144,7 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   */
   // each block is a sequence
   // each thread assigns bucketsPerThread number of buckets
-  /*
-    for (int i = 0; i < bucketsPerThread; i++) {
-    assignBuckets<<<numSequences, numThreads, sizeof (char) * sequenceLength * 2>>> (d_sequences, d_bucketSequence, d_bucketCounts, numSequences, sequenceLength, numBuckets, matchLength, matchAccuracy, bucketsPerThread, i);
-    cudaThreadSynchronize();
-    }
-  */
+
   
   numThreads = THREADS_PER_BLOCK;
   if (sequenceLength < numThreads)
@@ -146,11 +152,29 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
 
   int numSequenceSections = ceil (sequenceLength / (float) numThreads);
 
+  // make counters for each bucket in each sequence
+  uint * d_bucketCounts;
+  cudaMalloc (&d_bucketCounts, sizeof (uint) * numBuckets);
+  cudaMemset (d_bucketCounts, 0, sizeof (uint) * numBuckets);
+
+  uint * d_tempBucketCounts;
+  cudaMalloc (&d_tempBucketCounts, sizeof (uint) * numBuckets * numBuckets);
+
   
   // printf ("numThreads = %d, numBlocks = %d, numBuckets = %d, numSequenceSections = %d\n", numThreads, numSequenceSections * numBuckets, numBuckets, numSequenceSections);
 
+
+  // analyze 1 sequence at a time because executing one kernel for all the data
+  //  in a large data set takes too long and causes watchdog error
+  dim3 gridDim (numBuckets, numSequenceSections);
   for (int i = 0; i < numSequences; i++) {
-    assignBucket<<<numSequenceSections * numBuckets, numThreads, sizeof (char) * numThreads * 2>>> (d_sequences + i * sequenceLength, d_bucketSequence, d_bucketCounts, sequenceLength, numBuckets, matchLength, matchAccuracy, numSequenceSections);
+    cudaMemset (d_tempBucketCounts, 0, sizeof (uint) * numBuckets * numBuckets);
+    assignBuckets<<<gridDim, numThreads, sizeof (char) * (numThreads + matchLength * 2)>>> (d_sequences + i * sequenceLength, d_bucketSequence, d_tempBucketCounts, sequenceLength, numBuckets, matchLength, matchAccuracy, numSequenceSections);
+
+    // write kernel for d_bucketCounts which makes it account for repeats of a sequence segment
+    //  this kernel won't work if numSequenceSections > 1024, but that will only happen
+    //  if sequenceLength > 1024 * 1024, which is not relevent at this time
+    transferBuckets<<<bucketsPerThread, numThreads>>> (d_bucketCounts, d_tempBucketCounts, numBuckets);
     cudaThreadSynchronize();
   }
   
