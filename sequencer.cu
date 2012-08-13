@@ -2,6 +2,14 @@
 
 #define THREADS_PER_BLOCK 1024
 
+typedef struct {
+  int sequenceIndex;
+  int bucketNum;
+  char bucketContents[21];
+  int count;
+} bucketData;
+
+
 char * copySequencesToDevice (char ** sequences, int numSequences, int sequenceLength) {
   char * d_sequences;
   cudaMalloc (&d_sequences, sizeof (char) * sequenceLength * numSequences);
@@ -10,6 +18,16 @@ char * copySequencesToDevice (char ** sequences, int numSequences, int sequenceL
     cudaMemcpy (d_sequences + i * sequenceLength, *(sequences + i), sizeof (char) * sequenceLength, cudaMemcpyHostToDevice);
 
   return d_sequences;
+}
+
+int maximum (uint * list, int listLength) {
+  int max = 0;
+
+  for (int i = 1; i < listLength; i++)
+    if (list[i] > list[max])
+      max = i;
+
+  return max;
 }
 
 __global__ void createBuckets (char * sequence, char * buckets, int sequenceLength, int numBuckets, int matchLength, int bucketsPerThread) {
@@ -72,7 +90,7 @@ __global__ void transferBuckets (uint * buckets, uint * tempBuckets, int numBuck
     }
 }
 
-uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int bucketSequence, int matchLength, double matchAccuracy) {
+bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, int bucketSequence, int matchLength, double matchAccuracy) {
 
   // printSequences (sequences, numSequences, sequenceLength);
   // printDeviceSequences (d_sequences, numSequences, sequenceLength);
@@ -140,25 +158,27 @@ uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int 
   printFirstLastBuckets (d_bucketSequence, numBuckets, matchLength, sequenceLength); 
   printDeviceFirstLast (d_sequences, numSequences, sequenceLength);
   */  
-
+  
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * numBuckets);
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * numBuckets, cudaMemcpyDeviceToHost);
 
   // for (int i = 0; i < numBuckets + 1; i++)
   // printf ("bucketCounts[%d] = %u\n", i, *(bucketCounts + i));
 
+  bucketData data;
+  int max = maximum (bucketCounts, numBuckets);
+  
+  data.sequenceIndex = bucketSequence;
+  data.bucketNum = max;
+  data.count = bucketCounts[max];
+  for (int i = 0; i < matchLength; i++)
+    cudaMemcpy (data.bucketContents + i, d_sequences + bucketSequence * sequenceLength + max + i, sizeof (char), cudaMemcpyDeviceToHost);
+  data.bucketContents[matchLength] = '\0';
 
-  // printDeviceSequences (d_buckets, numBuckets, matchLength);
-
-  // run kernel in loop from length of sequence down to ~10 or so to see
-  // which bucket sizes give good results
-  // will need an array which holds what the matching pattern is
-  // will need an array to store data of which sequences have matching pattern
-	  
   cudaFree (d_bucketCounts);
   cudaFree (d_bucketSequence);
 
-  return bucketCounts;
+  return data;
 }
 
 __global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
