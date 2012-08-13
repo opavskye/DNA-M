@@ -1,0 +1,4 @@
+1) Keep multiple best counts
+2) make counter tell how many of each variant is in there
+   i.e. if best seq is AGAT, make it say how many AGAT, AGAC, AGAG at
+   whatever matchAccuracy it has
