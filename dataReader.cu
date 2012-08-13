@@ -42,7 +42,7 @@ int main (int argc, char *argv[]) {
   int numSequences = 125;
   int sequenceLength = 200;
   // int matchLength = 20;
-  double matchAccuracy = .9;
+  double matchAccuracy = 1;
 
   char * outFile;
 
@@ -166,8 +166,8 @@ int main (int argc, char *argv[]) {
   FILE * out;
   out = fopen (outFile, "w");
 
-  fprintf (out, "file name = %s, numSequences = %d, sequenceLength = %d\n, match threshold = %lf", fileEnd, numSequences, sequenceLength, matchAccuracy);
-  printf ("file name = %s, numSequences = %d, sequenceLength = %d\n", fileEnd, numSequences, sequenceLength);
+  fprintf (out, "file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
+  printf ("file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
   for (int i = minLength; i <= maxLength; i++) {
     bucketData results[numSequences];
 
