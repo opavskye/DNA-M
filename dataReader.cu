@@ -19,7 +19,9 @@ int readSequences (char * fileName, char ** sequences, int numSequences) {
     return 0;
   }
 
+  // skip first row
   while (getc (dataFile) != ',');
+
   for (int i = 0; i < numSequences; i++) {
 
     // skip first column
@@ -41,7 +43,6 @@ int main (int argc, char *argv[]) {
   char fileEnd[100] = "sample.csv";
   int numSequences = 125;
   int sequenceLength = 200;
-  // int matchLength = 20;
   double matchAccuracy = 1;
 
   char * outFile;
@@ -177,9 +178,10 @@ int main (int argc, char *argv[]) {
       results[bucketSequence] = sequencer (d_sequences, numSequences, sequenceLength, bucketSequence, i, matchAccuracy);
      
 
-
-      fprintf (out, "There were maximum %u matching sequences at bucket %d.\n", results[bucketSequence].count, results[bucketSequence].bucketNum);
-      fprintf (out, "sequence = %s\n", results[bucketSequence].bucketContents);
+      for (int x = 0; x < OUTPUTS_TO_KEEP; x++) {
+        fprintf (out, "There were maximum %u matching sequences at bucket %d.\n", results[bucketSequence].count[x], results[bucketSequence].bucketNum[x]);
+        fprintf (out, "sequence = %s\n", results[bucketSequence].bucketContents[x]);
+      }
     }
 
     fprintf(out, "\n\nSUMMARY FOR MATCHLENGTH = %d:\n", i);
@@ -187,12 +189,14 @@ int main (int argc, char *argv[]) {
     // output summary, first find max count
     bucketData maxBucket = results[0];
     for (int j = 1; j < numSequences; j++) 
-      if (results[j].count > maxBucket.count)
+      if (results[j].count[0] > maxBucket.count[0])
         maxBucket = results[j];
     
-    fprintf (out, "MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count, maxBucket.bucketNum, maxBucket.sequenceIndex, maxBucket.bucketContents);
-    printf ("MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count, maxBucket.bucketNum, maxBucket.sequenceIndex, maxBucket.bucketContents);
+    for (int x = 0; x < OUTPUTS_TO_KEEP; x++) {
+      fprintf (out, "MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
+      printf ("MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
 
+    }
     fprintf (out, "\n\n");
   }
 
@@ -208,12 +212,6 @@ int main (int argc, char *argv[]) {
   for (int i = 0; i < numSequences; i++)
     free (sequences[i]);
   free (sequences);
-
-  /*
-  for (int i = minLength; i <= maxLength; i++)
-    free (results[i - minLength]);
-  free (results);
-  */
 
   return 0;
 }

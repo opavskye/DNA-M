@@ -1,12 +1,13 @@
 #include "printFunctions.cu"
 
 #define THREADS_PER_BLOCK 1024
+#define OUTPUTS_TO_KEEP 5
 
 typedef struct {
-  int sequenceIndex;
-  int bucketNum;
-  char bucketContents[21];
-  int count;
+  int sequenceIndex[OUTPUTS_TO_KEEP];
+  int bucketNum[OUTPUTS_TO_KEEP];
+  char bucketContents[OUTPUTS_TO_KEEP][21];
+  int count[OUTPUTS_TO_KEEP];
 } bucketData;
 
 
@@ -28,6 +29,40 @@ int maximum (uint * list, int listLength) {
       max = i;
 
   return max;
+}
+
+/*
+bucketData summarizeMaximums (bucketData * data, int dataCount, int numMaxes) {
+
+  bucketData max;
+  int 
+  
+
+
+
+}
+*/
+void findMaximums (uint * bucketCounts, int numBuckets, int * maxes, int numMaxes) {
+
+  for (int i = 0; i < numMaxes; i++)
+    maxes[i] = 0;
+
+  for (int i = 0; i < numBuckets; i++)
+    for (int j = 0; j < numMaxes; j++)
+      if (bucketCounts[i] > bucketCounts[maxes[j]]) {
+        int temp = maxes[j];
+        maxes[j] = i;
+
+        // shift other maximums down
+        for (int k = numMaxes - 1; k > j; k--) 
+          maxes[k] = maxes[k-1];
+        
+        // put old maximum at this j index in its new location
+        if (j + 1 < numMaxes)
+          maxes[j + 1] = temp;
+
+        break;
+      }
 }
 
 __global__ void createBuckets (char * sequence, char * buckets, int sequenceLength, int numBuckets, int matchLength, int bucketsPerThread) {
@@ -165,15 +200,19 @@ bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, 
   // for (int i = 0; i < numBuckets + 1; i++)
   // printf ("bucketCounts[%d] = %u\n", i, *(bucketCounts + i));
 
+  // fill data with top OUTPUTS_TO_KEEP number of top bucketCounts 
   bucketData data;
-  int max = maximum (bucketCounts, numBuckets);
-  
-  data.sequenceIndex = bucketSequence;
-  data.bucketNum = max;
-  data.count = bucketCounts[max];
-  for (int i = 0; i < matchLength; i++)
-    cudaMemcpy (data.bucketContents + i, d_sequences + bucketSequence * sequenceLength + max + i, sizeof (char), cudaMemcpyDeviceToHost);
-  data.bucketContents[matchLength] = '\0';
+  int maxes[OUTPUTS_TO_KEEP];
+  findMaximums (bucketCounts, numBuckets, maxes, OUTPUTS_TO_KEEP);
+
+  for (int i = 0; i < OUTPUTS_TO_KEEP; i++) {
+    data.sequenceIndex[i] = bucketSequence;
+    data.bucketNum[i] = maxes[i];
+    data.count[i] = bucketCounts[maxes[i]];
+
+    cudaMemcpy (data.bucketContents[i], d_sequences + bucketSequence * sequenceLength + maxes[i], sizeof (char) * matchLength, cudaMemcpyDeviceToHost);
+    data.bucketContents[i][matchLength] = '\0';
+  }
 
   cudaFree (d_bucketCounts);
   cudaFree (d_bucketSequence);
