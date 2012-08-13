@@ -43,13 +43,9 @@ int main (int argc, char *argv[]) {
   char fileEnd[100] = "sample.csv";
   int numSequences = 125;
   int sequenceLength = 200;
-  double matchAccuracy = 1;
+  double matchAccuracy = .8;
 
   char * outFile;
-
-  // char * s1 = "CATTCAGCTTGCACTTTGGA";
-  // char * s2 = "CAGGCAGCTC";
-  // char * s3 = "CTAACTGGGG";
 
   if (argc == 3)
     outFile = argv[1];
@@ -157,12 +153,13 @@ int main (int argc, char *argv[]) {
   // put sequences into device memory
   char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
 
+
+  
   // choose a random sequence to create buckets from
   srand (time (NULL));
   // int bucketSequence = 1;//rand() % numSequences;
   int minLength = 4;
   int maxLength = 20;
-  // uint ** results = (uint **) malloc ((maxLength - minLength + 1) * sizeof (uint **));
 
   FILE * out;
   out = fopen (outFile, "w");
@@ -201,10 +198,12 @@ int main (int argc, char *argv[]) {
   }
 
   fclose (out);
+  
 
-  // printf ("counter 1 = %u\n", counter (sequences, numSequences, sequenceLength, s1, 20, .9));
-  // printf ("counter 2 = %u\n", counter (sequences, numSequences, sequenceLength, s2, 10, .8));
-  // printf ("counter 3 = %u\n", counter (sequences, numSequences, sequenceLength, s3, 10, .8));
+  /*
+  for (int i = 1; i < argc; i++)
+    printf ("%s counter = %u\n", argv[i], counter (d_sequences, numSequences, sequenceLength, argv[i], 4, matchAccuracy));
+  */
 
   // free all allocated memory
   cudaFree (d_sequences);

@@ -21,6 +21,7 @@ char * copySequencesToDevice (char ** sequences, int numSequences, int sequenceL
   return d_sequences;
 }
 
+
 int maximum (uint * list, int listLength) {
   int max = 0;
 
@@ -125,6 +126,35 @@ __global__ void transferBuckets (uint * buckets, uint * tempBuckets, int numBuck
     }
 }
 
+__global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
+
+  // read query and sequence segment into shared memory for faster access
+  extern __shared__ char shared[];
+  char * sharedQuery = &shared[0];
+  char * sharedSequence = &shared[queryLength];
+
+  // start of current sequence section
+  int sequenceIndex = blockIdx.x * sequenceLength + blockIdx.y * blockDim.x + threadIdx.x;
+
+  if (sequenceIndex < sequenceLength)
+    *(sharedSequence + threadIdx.x) = *(sequences + sequenceIndex);
+
+  if (threadIdx.x < queryLength) {
+    *(sharedQuery + threadIdx.x) = query[threadIdx.x];
+    *(sharedSequence + blockDim.x + threadIdx.x) = *(sequences + sequenceIndex + blockDim.x);
+  }
+
+  int numMatches = 0;
+
+  for (int i = 0; i < queryLength; i++) {
+    if (*(sequences + sequenceIndex + i) == *(query + i))
+      numMatches++;
+  }
+
+  if (numMatches / (double) queryLength >= matchAccuracy)
+    atomicInc (count + blockIdx.x * (sequenceLength - queryLength + 1) + blockIdx.y * blockDim.x + threadIdx.x, UINT_MAX);
+}
+
 bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, int bucketSequence, int matchLength, double matchAccuracy) {
 
   // printSequences (sequences, numSequences, sequenceLength);
@@ -220,41 +250,9 @@ bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, 
   return data;
 }
 
-__global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
-
-  // read query and sequence segment into shared memory for faster access
-  extern __shared__ char shared[];
-  char * sharedQuery = &shared[0];
-  char * sharedSequence = &shared[queryLength];
-
-  // start of current sequence section
-  int sequenceIndex = blockIdx.x * sequenceLength + blockIdx.y * blockDim.x + threadIdx.x;
-
-  if (sequenceIndex < sequenceLength)
-    *(sharedSequence + threadIdx.x) = *(sequences + sequenceIndex);
-
-  if (threadIdx.x < queryLength) {
-    *(sharedQuery + threadIdx.x) = query[threadIdx.x];
-    *(sharedSequence + blockDim.x + threadIdx.x) = *(sequences + sequenceIndex + blockDim.x);
-  }
-
-  int numMatches = 0;
-
-  for (int i = 0; i < queryLength; i++) {
-    if (*(sequences + sequenceIndex + i) == *(query + i))
-      numMatches++;
-  }
-
-  if (numMatches / (double) queryLength >= matchAccuracy)
-    atomicInc (count + blockIdx.x * (sequenceLength - queryLength + 1) + blockIdx.y * blockDim.x + threadIdx.x, UINT_MAX);
-}
-
 
 // grep -c query fileName
-uint counter (char ** sequences, int numSequences, int sequenceLength, char * query, int queryLength, double matchAccuracy) {
-	 
-  // put sequences into device memory
-  char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
+uint counter (char * d_sequences, int numSequences, int sequenceLength, char * query, int queryLength, double matchAccuracy) {
 
   // put query into device memory
   char * d_query;
@@ -288,7 +286,6 @@ uint counter (char ** sequences, int numSequences, int sequenceLength, char * qu
 
   cudaFree (d_tempCounters);
   cudaFree (d_query);
-  cudaFree (d_sequences);
 
   return count;
 }
