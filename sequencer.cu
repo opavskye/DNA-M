@@ -1,5 +1,4 @@
 #include "printFunctions.cu"
-#include <time.h>
 
 #define THREADS_PER_BLOCK 1024
 
@@ -73,14 +72,10 @@ __global__ void transferBuckets (uint * buckets, uint * tempBuckets, int numBuck
     }
 }
 
-uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int matchLength, double matchAccuracy) {
+uint * sequencer (char * d_sequences, int numSequences, int sequenceLength, int bucketSequence, int matchLength, double matchAccuracy) {
 
   // printSequences (sequences, numSequences, sequenceLength);
   // printDeviceSequences (d_sequences, numSequences, sequenceLength);
-
-  // choose a random sequence to create buckets from
-  srand (time (NULL));
-  int bucketSequence = 0;//rand() % numSequences;
 	  
   // printf ("bucketSequence = %d\n", bucketSequence);
 
