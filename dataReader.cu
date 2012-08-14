@@ -183,12 +183,16 @@ int main (int argc, char *argv[]) {
 
     fprintf(out, "\n\nSUMMARY FOR MATCHLENGTH = %d:\n", i);
   
+
     // output summary, first find max count
+    /*
     bucketData maxBucket = results[0];
     for (int j = 1; j < numSequences; j++) 
       if (results[j].count[0] > maxBucket.count[0])
         maxBucket = results[j];
-    
+    */
+    bucketData maxBucket = summarizeMaximums (results, numSequences, OUTPUTS_TO_KEEP);
+
     for (int x = 0; x < OUTPUTS_TO_KEEP; x++) {
       fprintf (out, "MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
       printf ("MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
