@@ -20,13 +20,13 @@ CFLAGS += $(COMMONFLAGS)
 
 LIB_CUDA := -L$(CUDA_INSTALL_PATH)/lib -lcurand
 
-default: dataReader
+default: sequencer
 
-dataReader: dataReader.cu sequencer.cu
-	$(NVCC) -o dataReader dataReader.cu $(NVCCFLAGS)
+sequencer: main.cu sequencer.cu counter.cu dataTransfer.cu maximums.c printFunctions.cu
+	$(NVCC) -o sequencer main.cu $(NVCCFLAGS)
 
-memtest: memtest.cu sequencer.cu
+memtest: memtest.cu sequencer.cu counter.cu dataTransfer.cu maximums.c printFunctions.cu
 	$(NVCC) -o memtest memtest.cu $(NVCCFLAGS)
 
 clean:
-	rm -f dataReader memtest *~ *#
+	rm -f sequencer memtest *~ *#

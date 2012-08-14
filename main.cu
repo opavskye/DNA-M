@@ -7,32 +7,8 @@
 #include <curand.h>
 
 #include "sequencer.cu"
-
-int readSequences (char * fileName, char ** sequences, int numSequences) {
-
-  cudaDeviceReset();
-
-  FILE *dataFile;
-  if ((dataFile = fopen (fileName, "r")) == NULL) {
-    printf("The file %s could not be opened.\n", fileName);
-    return 0;
-  }
-
-  // skip first row
-  while (getc (dataFile) != ',');
-
-  for (int i = 0; i < numSequences; i++) {
-
-    // skip first column
-    while (getc (dataFile) != ',');
-    fscanf (dataFile, "%s", sequences[i]);
-
-  }
-
-  fclose (dataFile);
-  return 1;
-}
-
+#include "dataTransfer.cu"
+#include "counter.cu"
 
 int main (int argc, char *argv[]) {
   
@@ -195,10 +171,10 @@ int main (int argc, char *argv[]) {
   fclose (out);
   
 
-  /*
+  
   for (int i = 1; i < argc; i++)
     printf ("%s counter = %u\n", argv[i], counter (d_sequences, numSequences, sequenceLength, argv[i], 4, matchAccuracy));
-  */
+  
 
   // free all allocated memory
   cudaFree (d_sequences);
