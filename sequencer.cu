@@ -1,8 +1,6 @@
 #include "printFunctions.cu"
 #include "maximums.c"
 
-#define THREADS_PER_BLOCK 1024
-
 __global__ void createBuckets (char * sequence, char * buckets, int sequenceLength, int numBuckets, int matchLength, int bucketsPerThread) {
 	  
   int index = threadIdx.x + (blockIdx.x % bucketsPerThread * blockDim.x);
