@@ -1,6 +1,6 @@
 #include <string.h>
 
-#define OUTPUTS_TO_KEEP 5
+#define OUTPUTS_TO_KEEP 10
 
 typedef struct {
   int sequenceIndex[OUTPUTS_TO_KEEP];

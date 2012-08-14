@@ -8,107 +8,27 @@
 
 #include "sequencer.cu"
 #include "dataTransfer.cu"
-#include "counter.cu"
 
 int main (int argc, char *argv[]) {
   
-  char fileName[100];
-  strcpy (fileName, "../data/");
 
-  char fileEnd[100] = "sample.csv";
-  int numSequences = 125;
-  int sequenceLength = 200;
-  double matchAccuracy = .8;
-
-  char * outFile;
-
-  if (argc == 3)
-    outFile = argv[1];
-    
-  if (argc == 2) {
-    outFile = argv[1];
-
-    fileEnd[0] = 'r';
-    fileEnd[1] = 'a';
-    fileEnd[2] = 'n';
-    fileEnd[3] = 'd';
-    fileEnd[4] = 'o';
-    fileEnd[5] = 'm';
+  if (argc != 4) {
+    printf ("Argument Error:  correct usage is\t./sequencer inputFile outputFile matchAccuracy\n");
+    return 1;
   }
 
-  /*
-    if (argc == 2) {
-    fileEnd[6] = '2';
-    fileEnd[7] = '.';
-    fileEnd[8] = 'c';
-    fileEnd[9] = 's';
-    fileEnd[10] = 'v';
-    fileEnd[11] = '\0';
-    numSequences = 3000;
-    sequenceLength = 4000;
-    }  
-
-    if (argc == 3) {
-    fileEnd[6] = '3';
-    fileEnd[7] = '.';
-    fileEnd[8] = 'c';
-    fileEnd[9] = 's';
-    fileEnd[10] = 'v';
-    fileEnd[11] = '\0';
-    numSequences = 2001;
-    sequenceLength = 2000;
-    }
-
-    if (argc == 4) {
-    fileEnd[6] = '4';
-    fileEnd[7] = '.';
-    fileEnd[8] = 'c';
-    fileEnd[9] = 's';
-    fileEnd[10] = 'v';
-    fileEnd[11] = '\0';
-    numSequences = 1000;
-    sequenceLength = 1000;
-    }
-
-    if (argc == 5) {
-    fileEnd[6] = '5';
-    fileEnd[7] = '.';
-    fileEnd[8] = 'c';
-    fileEnd[9] = 's';
-    fileEnd[10] = 'v';
-    fileEnd[11] = '\0';
-    numSequences = 1000;
-    sequenceLength = 2000;
-    }
-
-    if (argc == 6) {
-    fileEnd[6] = '6';
-    fileEnd[7] = '.';
-    fileEnd[8] = 'c';
-    fileEnd[9] = 's';
-    fileEnd[10] = 'v';
-    fileEnd[11] = '\0';
-    numSequences = 4000;
-    sequenceLength = 1000;
-    }
+  char fileName[100];
+  strcpy (fileName, "../data/");
   
-    if (argc < 2) {
-    printf ("Please enter the name of the data file: ");
-    scanf ("%s", fileEnd);
+  char * fileEnd = argv[1];
 
-    printf ("Please enter the number of sequences: ");
-    scanf ("%d", &numSequences);
+  // char fileEnd[100] = "sample.csv";
+  int numSequences = 125;
+  int sequenceLength = 200;
+  // double matchAccuracy = .8;
+  double matchAccuracy = atof (argv[3]);
 
-    printf ("Please enter the length of the sequences: ");
-    scanf ("%d", &sequenceLength);
-
-    printf ("Please enter the length of the matching substrings: ");
-    scanf ("%d", &matchLength);
-
-    printf ("Please enter the minimum accuracy of the matches: ");
-    scanf ("%lf", &matchAccuracy);
-    }
-  */
+  char * outFile = argv[2];
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
@@ -172,8 +92,8 @@ int main (int argc, char *argv[]) {
   
 
   
-  for (int i = 1; i < argc; i++)
-    printf ("%s counter = %u\n", argv[i], counter (d_sequences, numSequences, sequenceLength, argv[i], 4, matchAccuracy));
+  //  for (int i = 1; i < argc; i++)
+  //  printf ("%s counter = %u\n", argv[i], counter (d_sequences, numSequences, sequenceLength, argv[i], 4, matchAccuracy));
   
 
   // free all allocated memory

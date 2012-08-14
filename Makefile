@@ -22,11 +22,14 @@ LIB_CUDA := -L$(CUDA_INSTALL_PATH)/lib -lcurand
 
 default: sequencer
 
-sequencer: main.cu sequencer.cu counter.cu dataTransfer.cu maximums.c printFunctions.cu
-	$(NVCC) -o sequencer main.cu $(NVCCFLAGS)
+sequencer: sequencerMain.cu sequencer.cu dataTransfer.cu maximums.c printFunctions.cu
+	$(NVCC) -o sequencer sequencerMain.cu $(NVCCFLAGS)
+
+counter: counterMain.cu counter.cu dataTransfer.cu maximums.c printFunctions.cu
+	$(NVCC) -o counter counterMain.cu $(NVCCFLAGS)
 
 memtest: memtest.cu sequencer.cu counter.cu dataTransfer.cu maximums.c printFunctions.cu
 	$(NVCC) -o memtest memtest.cu $(NVCCFLAGS)
 
 clean:
-	rm -f sequencer memtest *~ *#
+	rm -f sequencer counter memtest *~ *#
