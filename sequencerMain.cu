@@ -21,14 +21,13 @@ int main (int argc, char *argv[]) {
   strcpy (fileName, "../data/");
   
   char * fileEnd = argv[1];
-
-  // char fileEnd[100] = "sample.csv";
+  char * outFile = argv[2];
+  double matchAccuracy = atof (argv[3]);
   int numSequences = 125;
   int sequenceLength = 200;
-  // double matchAccuracy = .8;
-  double matchAccuracy = atof (argv[3]);
+  int minLength = 4;
+  int maxLength = 20;
 
-  char * outFile = argv[2];
 
   // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
@@ -48,19 +47,16 @@ int main (int argc, char *argv[]) {
   // put sequences into device memory
   char * d_sequences = copySequencesToDevice (sequences, numSequences, sequenceLength);
 
-
   
   // choose a random sequence to create buckets from
-  srand (time (NULL));
+  // srand (time (NULL));
   // int bucketSequence = 1;//rand() % numSequences;
-  int minLength = 4;
-  int maxLength = 20;
 
   FILE * out;
   out = fopen (outFile, "w");
 
-  fprintf (out, "file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
-  printf ("file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
+  fprintf (out, "file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %.2lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
+  printf ("file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %.2lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
   for (int i = minLength; i <= maxLength; i++) {
     bucketData results[numSequences];
 
@@ -88,13 +84,8 @@ int main (int argc, char *argv[]) {
     fprintf (out, "\n\n");
   }
 
-  fclose (out);
-  
 
-  
-  //  for (int i = 1; i < argc; i++)
-  //  printf ("%s counter = %u\n", argv[i], counter (d_sequences, numSequences, sequenceLength, argv[i], 4, matchAccuracy));
-  
+  fclose (out);
 
   // free all allocated memory
   cudaFree (d_sequences);

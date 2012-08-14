@@ -1,3 +1,5 @@
+#define THREADS_PER_BLOCK 1024
+
 
 __global__ void counterKernel (char * sequences, int sequenceLength, char * query, int queryLength, uint * count, double matchAccuracy) {
 
