@@ -153,6 +153,9 @@ bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, 
     data.bucketContents[i][matchLength] = '\0';
   }
 
+  printf ("finished bucketSequence %d\n", bucketSequence);
+
+  cudaFree (d_tempBucketCounts);
   cudaFree (d_bucketCounts);
   cudaFree (d_bucketSequence);
 
