@@ -26,11 +26,11 @@ int main (int argc, char *argv[]) {
   int numSequences = 129;
   int sequenceLength = 2000;
   int minLength = 4;
-  int maxLength = 20;
+  int maxLength = 15;
 
 
   // allocate memory for sequences
-  char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
+  char ** sequences = (char **) malloc (numSequences * sizeof (char *));
   for (int i = 0; i < numSequences; i++)
     *(sequences + i) = (char *) malloc ((sequenceLength + 1) * sizeof (char));
 
@@ -66,7 +66,7 @@ int main (int argc, char *argv[]) {
 
     // fprintf (out, "\n\nNow running matchLength = %d\n\n", i);
     printf ("\n\nNow running matchLength = %d\n\n", i);
-    for (int bucketSequence = 0; bucketSequence < numSequences; bucketSequence ++) {
+    for (int bucketSequence = 120; bucketSequence < numSequences; bucketSequence ++) {
       results[bucketSequence] = sequencer (d_sequences, numSequences, sequenceLength, bucketSequence, i, matchAccuracy);
      
 
