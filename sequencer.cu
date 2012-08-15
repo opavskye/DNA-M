@@ -38,9 +38,12 @@ __global__ void assignBuckets (char * sequence, char * bucketSequence, uint * te
   int index;
   
   for (int i = 0; i < matchLength; i++) 
-    if ((index = threadIdx.x + i) + sequenceIndex < sequenceLength)
-      if (*(sharedSequence + index) == *(sharedBucketSequence + i) && *(sharedSequence + index) != 'N')
+    if ((index = threadIdx.x + i) + sequenceIndex < sequenceLength) {
+      if (*(sharedSequence + index) == *(sharedBucketSequence + i))
         numMatches++;
+      if (*(sharedSequence + index) == 'N')
+        numMatches-=20;
+    }
 
   if ((numMatches / (double) matchLength >= matchAccuracy) && (sequenceIndex + threadIdx.x < numBuckets)) 
     // blockIdx.x * numBuckets is which bucket in tempBucketCounts

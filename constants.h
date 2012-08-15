@@ -1,5 +1,5 @@
 #define THREADS_PER_BLOCK 1024
-#define OUTPUTS_TO_KEEP 10
+#define OUTPUTS_TO_KEEP 100
 
 typedef struct {
   int sequenceIndex[OUTPUTS_TO_KEEP];
