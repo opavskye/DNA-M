@@ -60,13 +60,13 @@ int main (int argc, char *argv[]) {
 
   fprintf (out, "frequency,consensus,threshold,file name\n");
   // fprintf (out, "file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %.2lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
-  printf ("file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %.2lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
+  // printf ("file name = %s, numSequences = %d, sequenceLength = %d, match threshold = %.2lf\n", fileEnd, numSequences, sequenceLength, matchAccuracy);
   for (int i = minLength; i <= maxLength; i++) {
     bucketData results[numSequences];
 
     // fprintf (out, "\n\nNow running matchLength = %d\n\n", i);
-    printf ("\n\nNow running matchLength = %d\n\n", i);
-    for (int bucketSequence = 120; bucketSequence < numSequences; bucketSequence ++) {
+    // printf ("\n\nNow running matchLength = %d\n\n", i);
+    for (int bucketSequence = 0; bucketSequence < numSequences; bucketSequence ++) {
       results[bucketSequence] = sequencer (d_sequences, numSequences, sequenceLength, bucketSequence, i, matchAccuracy);
      
 
@@ -83,7 +83,7 @@ int main (int argc, char *argv[]) {
 
     for (int x = 0; x < OUTPUTS_TO_KEEP; x++) {
       fprintf (out, "%d,%s,%.2lf,%s\n", maxBucket.count[x], maxBucket.bucketContents[x], matchAccuracy, fileEnd);
-      printf ("MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
+      // printf ("MAX:\tcount = %u, bucket = %d, sequence = %d, contents = %s\n", maxBucket.count[x], maxBucket.bucketNum[x], maxBucket.sequenceIndex[x], maxBucket.bucketContents[x]);
     }
   }
 
