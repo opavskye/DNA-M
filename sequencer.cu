@@ -136,8 +136,8 @@ bucketData sequencer (char * d_sequences, int numSequences, int sequenceLength, 
   uint * bucketCounts = (uint *) malloc (sizeof (uint) * numBuckets);
   cudaMemcpy (bucketCounts, d_bucketCounts, sizeof (uint) * numBuckets, cudaMemcpyDeviceToHost);
 
-  // for (int i = 0; i < numBuckets + 1; i++)
-  // printf ("bucketCounts[%d] = %u\n", i, *(bucketCounts + i));
+  // for (int i = 0; i < numBuckets; i++)
+  //  printf ("bucketCounts[%d] = %u\n", i, *(bucketCounts + i));
 
   // fill data with top OUTPUTS_TO_KEEP number of top bucketCounts 
   bucketData data;

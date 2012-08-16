@@ -31,7 +31,7 @@ bucketData summarizeMaximums (bucketData * data, int dataCount, int numMaxes) {
   for (int i = 1; i < dataCount; i++) { // loop to go through all data
     for (int j = 0; j < numMaxes; j++) { // loop to go through all elements in each dataBucket in data
       for (int k = 0; k < numMaxes; k++) { // loop to go through all elements in max
-        if (data[i].count[j] > data[maxes[k][0]].count[maxes[k][1]]) {
+        if (data[i].count[j] >= data[maxes[k][0]].count[maxes[k][1]]) {
           
           // make sure data[i].bucketContents[j] doesn't match any of the bucketContents in maxes
           int match = 1;
@@ -59,10 +59,9 @@ bucketData summarizeMaximums (bucketData * data, int dataCount, int numMaxes) {
               maxes[k + 1][0] = temp[0];
               maxes[k + 1][1] = temp[1];
             }
-
-            // don't put this data[i].*[j] element into anywhere else in the maxes
-            break;
           }
+          // don't put this data[i].*[j] element into anywhere else in the maxes
+          break;
         }
       }
     }
@@ -83,7 +82,7 @@ bucketData summarizeMaximums (bucketData * data, int dataCount, int numMaxes) {
 void findMaximums (uint * bucketCounts, int numBuckets, int * maxes, int numMaxes) {
 
   for (int i = 0; i < numMaxes; i++)
-    maxes[i] = 0;
+    maxes[i] = i;
 
   for (int i = 0; i < numBuckets; i++)
     for (int j = 0; j < numMaxes; j++)

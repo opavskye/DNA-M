@@ -23,8 +23,8 @@ int main (int argc, char *argv[]) {
   char * fileEnd = argv[1];
   char * query = argv[2];
   double matchAccuracy = atof (argv[3]);
-  int numSequences = 125;
-  int sequenceLength = 200;
+  int numSequences = 129;
+  int sequenceLength = 2000;
 
  // allocate memory for sequences
   char ** sequences =  sequences = (char **) malloc (numSequences * sizeof (char *));
