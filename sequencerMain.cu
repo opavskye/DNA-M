@@ -56,7 +56,7 @@ int main (int argc, char *argv[]) {
   // int bucketSequence = 1;//rand() % numSequences;
 
   FILE * out;
-  out = fopen (outFile, "w");
+  out = fopen (outFile, "a");
 
   fprintf (out, "frequency,consensus,threshold,file name\n");
 
@@ -69,7 +69,7 @@ int main (int argc, char *argv[]) {
 
     // fprintf (out, "\n\nNow running matchLength = %d\n\n", i);
     // printf ("\n\nNow running matchLength = %d\n\n", i);
-    for (int bucketSequence = 0; bucketSequence < numSequences; bucketSequence ++) {
+    for (int bucketSequence = 125; bucketSequence < numSequences; bucketSequence ++) {
       results[bucketSequence] = sequencer (d_sequences, numSequences, sequenceLength, bucketSequence, i, matchAccuracy);
      
       printf ("bucketSequence %d for length %d complete.\n", bucketSequence, i);
@@ -87,7 +87,7 @@ int main (int argc, char *argv[]) {
 
     printf ("now printing outputs\n");
 
-    out = fopen (outFile, "w");
+    out = fopen (outFile, "a");
 
     for (int x = 0; x < OUTPUTS_TO_KEEP; x++) {
       printf ("now writing to file:  %d,%s,%.2lf,%s\n", maxBucket.count[x], maxBucket.bucketContents[x], matchAccuracy, fileEnd);
