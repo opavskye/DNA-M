@@ -20,10 +20,10 @@ int readSequences (char * fileName, char ** sequences, int numSequences) {
     while (getc (dataFile) != ',');
 
     // skip second column
-    while (getc (dataFile) != ',');
+    // while (getc (dataFile) != ',');
 
     // skip third column
-    while (getc (dataFile) != ',');
+    // while (getc (dataFile) != ',');
 
     fscanf (dataFile, "%s", sequences[i]);
 
