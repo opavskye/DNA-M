@@ -69,7 +69,7 @@ int main (int argc, char *argv[]) {
 
     // fprintf (out, "\n\nNow running matchLength = %d\n\n", i);
     // printf ("\n\nNow running matchLength = %d\n\n", i);
-    for (int bucketSequence = 125; bucketSequence < numSequences; bucketSequence ++) {
+    for (int bucketSequence = 0; bucketSequence < numSequences; bucketSequence ++) {
       results[bucketSequence] = sequencer (d_sequences, numSequences, sequenceLength, bucketSequence, i, matchAccuracy);
      
       printf ("bucketSequence %d for length %d complete.\n", bucketSequence, i);
