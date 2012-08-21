@@ -23,7 +23,7 @@ int main (int argc, char *argv[]) {
   char * fileEnd = argv[1];
   char * outFile = argv[2];
   double matchAccuracy = atof (argv[3]);
-  int numSequences = 116;
+  int numSequences = 1690;
   int sequenceLength = 2000;
   int minLength = 4;
   int maxLength = 15;
