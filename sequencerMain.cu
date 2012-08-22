@@ -25,7 +25,7 @@ int main (int argc, char *argv[]) {
   double matchAccuracy = atof (argv[3]);
   int numSequences = 1690;
   int sequenceLength = 2000;
-  int minLength = 4;
+  int minLength = 6;
   int maxLength = 15;
 
 
