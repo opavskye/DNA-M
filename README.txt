@@ -70,7 +70,8 @@ In addition, when the values are copied over, there will be a new column created
 An important condition which must hold true for this program to function correctly is 
 that each data set is grouped by geneSymbol.
 
-Usage for ConsensusSearch is:	./ConsensusSearch outputFile inputFile1 inputFile2 ...
+Usage for ConsensusSearch is:	
+	./ConsensusSearch outputFile inputFile1 inputFile2 ...
 
 
 These programs were orignally created for use by Opavsky Lab at the University of 
