@@ -74,7 +74,7 @@ Usage for ConsensusSearch is:	./ConsensusSearch outputFile inputFile1 inputFile2
 
 
 These programs were orignally created for use by Opavsky Lab at the University of 
-Nebraska Medical Center's Eppley Institute for Research in Cancer.  They are targetted 
+Nebraska Medical Center's Eppley Institute for Research in Cancer.  They are targeted 
 for use with data in the format which is used there, and will require an experienced 
 user to use with other data, even for very similar purposes.
 
