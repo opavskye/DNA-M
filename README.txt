@@ -21,13 +21,14 @@ of at least Compute Capability 2.0 or greater.  The purpose of the sequencer pro
 is to find the most common motifs in a given set of DNA sequences, with the ability 
 for the user to give a "match threshold" which qualifies sequence matching.  The 
 purpose of the counter program is to count the number of occurances of a subsequence 
-within a large set of sequences.  This also uses the "match threshold" to account for 
-slight differences in sequence.  Neither program accounts for insertions or deletions 
-in nucleotides, only mutation of nucleotides is accounted for by match threshold.
-For example, a .8 match threshold when searching for subsequences of length 10 in 
-the data requires 8 out of the 10 nucleotides to match.  There can only be one match 
-for a subsequence per sequence in the data set, so the maximum number of matches 
-found for a subsequences is the number of sequences there are in the data set.
+within a large set of sequences.  This also uses the "match threshold" to account 
+for slight differences in sequence.  Neither program accounts for insertions or 
+deletions in nucleotides, only mutation of nucleotides is accounted for by match 
+threshold.  For example, a .8 match threshold when searching for subsequences of 
+length 10 in the data requires 8 out of the 10 nucleotides to match.  There can 
+only be one match for a subsequence per sequence in the data set, so the maximum 
+number of matches found for a subsequences is the number of sequences there are in 
+the data set.
 
 Modification to these programs, in the files sequencerMain.cu, counterMain.cu, and 
 dataTransfer.cu, is likely necessary to fit the programs to a new data set.  These 
@@ -75,9 +76,9 @@ Usage for ConsensusSearch is:
 
 
 These programs were orignally created for use by Opavsky Lab at the University of 
-Nebraska Medical Center's Eppley Institute for Research in Cancer.  They are targeted 
-for use with data in the format which is used there, and will require an experienced 
-user to use with other data, even for very similar purposes.
+Nebraska Medical Center's Eppley Institute for Research in Cancer.  They are 
+targeted for use with data in the format which is used there, and will require an 
+experienced user to use with other data, even for very similar purposes.
 
 For more information on these programs, and for help with using them, please contact 
 opavskye@grinnell.edu with any questions.
