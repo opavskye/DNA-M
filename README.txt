@@ -13,8 +13,8 @@
   limitations under the License.
 
 
-This is software for analysis of methylated DNA sequences.  The following programs 
-are included:  sequencer, counter, promoterMerger, and ConsensusSearch.
+This is software for the analysis of methylated DNA sequences.  The following 
+programs are included:  sequencer, counter, promoterMerger, and ConsensusSearch.
 
 Sequencer and counter can only be used on CUDA enabled machines, with a CUDA device 
 of at least Compute Capability 2.0 or greater.  The purpose of the sequencer program 
