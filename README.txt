@@ -26,8 +26,8 @@ slight differences in sequence.  Neither program accounts for insertions or dele
 in nucleotides, only mutation of nucleotides is accounted for by match threshold.
 For example, a .8 match threshold when searching for subsequences of length 10 in 
 the data requires 8 out of the 10 nucleotides to match.  There can only be one match 
-for a subsequence per sequence in the data set, so the maximum number of matches found 
-for a subsequences is the number of sequences there are in the data set.
+for a subsequence per sequence in the data set, so the maximum number of matches 
+found for a subsequences is the number of sequences there are in the data set.
 
 Modification to these programs, in the files sequencerMain.cu, counterMain.cu, and 
 dataTransfer.cu, is likely necessary to fit the programs to a new data set.  These 
@@ -53,22 +53,22 @@ _____
 
 The ConsensusSearch program looks over a set of methylation data and extracts rows 
 from the inputFiles to the outputFile based on certain conditions.  Included are 
-the .java files ConsensusSearch.java and HeaderInfo.java, needed to create a working 
-java project for ConsensusSearch.
+the .java files ConsensusSearch.java and HeaderInfo.java, needed to create a 
+working java project for ConsensusSearch.
  
 The first condition is that the Distance_TSS column value is positive.
 
 The second condition is that there are at least 10 unique Center_CCGG_HG_19 values 
-for any geneSymbol.  However, not just the unique Center_CCGG_HG_19 values are copied 
-over to the output file, but the entire geneSymbol group is copied over for the values 
-under which both the first condition holds true and the geneSymbol groups under which 
-the second condition holds true.
+for any geneSymbol.  However, not just the unique Center_CCGG_HG_19 values are 
+copied over to the output file, but the entire geneSymbol group is copied over for 
+the values under which both the first condition holds true and the geneSymbol 
+groups under which the second condition holds true.
 
-In addition, when the values are copied over, there will be a new column created titled 
-"length" which stores the value of txEnd - txStart.
+In addition, when the values are copied over, there will be a new column created 
+titled "length" which stores the value of txEnd - txStart.
 
-An important condition which must hold true for this program to function correctly is 
-that each data set is grouped by geneSymbol.
+An important condition which must hold true for this program to function correctly 
+is that each data set is grouped by geneSymbol.
 
 Usage for ConsensusSearch is:	
 	./ConsensusSearch outputFile inputFile1 inputFile2 ...
